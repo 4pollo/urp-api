@@ -265,4 +265,5 @@ describe('AuthService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
 });
