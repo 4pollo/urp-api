@@ -13,7 +13,7 @@ import { RolePermission } from '../roles/entities/role-permission.entity';
 describe('PermissionsService', () => {
   let service: PermissionsService;
   let permissionRepo: {
-    find: jest.Mock;
+    findAndCount: jest.Mock;
     findOne: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
@@ -24,7 +24,7 @@ describe('PermissionsService', () => {
 
   beforeEach(async () => {
     permissionRepo = {
-      find: jest.fn(),
+      findAndCount: jest.fn(),
       findOne: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
@@ -46,6 +46,32 @@ describe('PermissionsService', () => {
     }).compile();
 
     service = module.get<PermissionsService>(PermissionsService);
+  });
+
+  it('returns paginated permissions in findAll', async () => {
+    permissionRepo.findAndCount.mockResolvedValue([
+      [{ id: 1, key: 'user:write', group: 'user', description: 'write user' }],
+      18,
+    ]);
+
+    await expect(service.findAll(2, 10, 'user')).resolves.toEqual({
+      items: [
+        { id: 1, key: 'user:write', group: 'user', description: 'write user' },
+      ],
+      total: 18,
+      page: 2,
+      limit: 10,
+    });
+
+    expect(permissionRepo.findAndCount).toHaveBeenCalledWith({
+      where: { group: 'user' },
+      skip: 10,
+      take: 10,
+      order: {
+        group: 'ASC',
+        key: 'ASC',
+      },
+    });
   });
 
   it('rejects duplicate permission keys on create', async () => {
@@ -70,13 +96,18 @@ describe('PermissionsService', () => {
     await expect(service.remove(1)).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('filters permissions by group in findAll', async () => {
-    permissionRepo.find.mockResolvedValue([{ id: 1, key: 'user:write' }]);
+  it('filters permissions by group in paginated findAll', async () => {
+    permissionRepo.findAndCount.mockResolvedValue([
+      [{ id: 1, key: 'user:write', group: 'user' }],
+      1,
+    ]);
 
-    await service.findAll('user');
+    await service.findAll(1, 10, 'user');
 
-    expect(permissionRepo.find).toHaveBeenCalledWith({
+    expect(permissionRepo.findAndCount).toHaveBeenCalledWith({
       where: { group: 'user' },
+      skip: 0,
+      take: 10,
       order: {
         group: 'ASC',
         key: 'ASC',

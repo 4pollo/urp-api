@@ -23,8 +23,11 @@ export class RolesService {
     private permissionRepo: Repository<Permission>,
   ) {}
 
-  async findAll() {
-    const roles = await this.roleRepo.find({
+  async findAll(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    const [roles, total] = await this.roleRepo.findAndCount({
+      skip,
+      take: limit,
       relations: {
         permissions: {
           permission: true,
@@ -35,13 +38,18 @@ export class RolesService {
       },
     });
 
-    return roles.map((role) => ({
-      id: role.id,
-      name: role.name,
-      description: role.description,
-      permissionCount: role.permissions.length,
-      createdAt: role.createdAt,
-    }));
+    return {
+      items: roles.map((role) => ({
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        permissionCount: role.permissions.length,
+        createdAt: role.createdAt,
+      })),
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number) {

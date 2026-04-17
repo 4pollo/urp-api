@@ -24,18 +24,26 @@ export class PermissionsService {
     private rolePermissionRepo: Repository<RolePermission>,
   ) {}
 
-  async findAll(group?: string) {
+  async findAll(page: number = 1, limit: number = 10, group?: string) {
+    const skip = (page - 1) * limit;
     const where = group ? { group } : {};
 
-    const permissions = await this.permissionRepo.find({
+    const [permissions, total] = await this.permissionRepo.findAndCount({
       where,
+      skip,
+      take: limit,
       order: {
         group: 'ASC',
         key: 'ASC',
       },
     });
 
-    return permissions;
+    return {
+      items: permissions,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number) {

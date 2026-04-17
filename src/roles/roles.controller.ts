@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
+import { QueryRolesDto } from './dto/query-roles.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccessGuard } from '../auth/access.guard';
 import { RequireRoles } from '../auth/access.decorator';
@@ -24,8 +26,8 @@ export class RolesController {
   constructor(private rolesService: RolesService) {}
 
   @Get()
-  async findAll() {
-    return this.rolesService.findAll();
+  async findAll(@Query() query: QueryRolesDto) {
+    return this.rolesService.findAll(query.page, query.limit);
   }
 
   @Get(':id')

@@ -34,11 +34,13 @@ describe('Application e2e', () => {
   };
   let usersService: {
     create: jest.Mock;
+    findAll: jest.Mock;
   };
   let rolesService: {
     findAll: jest.Mock;
   };
   let permissionsService: {
+    findAll: jest.Mock;
     checkPermission: jest.Mock;
   };
 
@@ -88,15 +90,33 @@ describe('Application e2e', () => {
         email,
         status: UserStatus.ACTIVE,
       })),
+      findAll: jest.fn(async (page = 1, limit = 10, status?: UserStatus, roleId?: number) => ({
+        items: [],
+        total: 0,
+        page,
+        limit,
+        status,
+        roleId,
+      })),
     };
 
     rolesService = {
-      findAll: jest.fn(async () => [
-        { id: 1, name: 'SuperAdmin', permissionCount: 1 },
-      ]),
+      findAll: jest.fn(async (page = 1, limit = 10) => ({
+        items: [{ id: 1, name: 'SuperAdmin', permissionCount: 1 }],
+        total: 1,
+        page,
+        limit,
+      })),
     };
 
     permissionsService = {
+      findAll: jest.fn(async (page = 1, limit = 10, group?: string) => ({
+        items: [],
+        total: 0,
+        page,
+        limit,
+        group,
+      })),
       checkPermission: jest.fn(async () => ({ allowed: true })),
     };
 
@@ -270,6 +290,73 @@ describe('Application e2e', () => {
           email: 'created@example.com',
           status: UserStatus.ACTIVE,
         });
+      });
+  });
+
+  it('applies default users query dto values', async () => {
+    await request(app.getHttpServer())
+      .get('/api/users')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(200);
+
+    expect(usersService.findAll).toHaveBeenCalledWith(1, 10, undefined, undefined);
+  });
+
+  it('rejects users limit greater than 50', async () => {
+    await request(app.getHttpServer())
+      .get('/api/users?limit=51')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.code).toBe(4003);
+      });
+  });
+
+  it('rejects invalid users status query', async () => {
+    await request(app.getHttpServer())
+      .get('/api/users?status=disabled')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.code).toBe(4003);
+      });
+  });
+
+  it('passes validated roles query dto values', async () => {
+    await request(app.getHttpServer())
+      .get('/api/roles?page=2&limit=20')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(200);
+
+    expect(rolesService.findAll).toHaveBeenCalledWith(2, 20);
+  });
+
+  it('rejects roles query parameters above max limit', async () => {
+    await request(app.getHttpServer())
+      .get('/api/roles?limit=99')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.code).toBe(4003);
+      });
+  });
+
+  it('passes validated permissions query dto values', async () => {
+    await request(app.getHttpServer())
+      .get('/api/permissions?page=3&limit=5&group=user')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(200);
+
+    expect(permissionsService.findAll).toHaveBeenCalledWith(3, 5, 'user');
+  });
+
+  it('rejects unknown permissions query parameters', async () => {
+    await request(app.getHttpServer())
+      .get('/api/permissions?unknown=value')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.code).toBe(4003);
       });
   });
 });

@@ -15,6 +15,7 @@ import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { CheckPermissionDto } from './dto/check-permission.dto';
+import { QueryPermissionsDto } from './dto/query-permissions.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccessGuard } from '../auth/access.guard';
 import { RequireRoles } from '../auth/access.decorator';
@@ -27,8 +28,12 @@ export class PermissionsController {
   @Get('permissions')
   @UseGuards(AccessGuard)
   @RequireRoles('SuperAdmin')
-  async findAll(@Query('group') group?: string) {
-    return this.permissionsService.findAll(group);
+  async findAll(@Query() query: QueryPermissionsDto) {
+    return this.permissionsService.findAll(
+      query.page,
+      query.limit,
+      query.group,
+    );
   }
 
   @Get('permissions/me')

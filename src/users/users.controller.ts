@@ -16,6 +16,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
+import { QueryUsersDto } from './dto/query-users.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccessGuard } from '../auth/access.guard';
 import { RequireRoles } from '../auth/access.decorator';
@@ -26,17 +27,12 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('status') status?: string,
-    @Query('roleId') roleId?: string,
-  ) {
+  async findAll(@Query() query: QueryUsersDto) {
     return this.usersService.findAll(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 10,
-      status,
-      roleId ? parseInt(roleId) : undefined,
+      query.page,
+      query.limit,
+      query.status,
+      query.roleId,
     );
   }
 

@@ -14,6 +14,7 @@ describe('RolesService', () => {
   let service: RolesService;
   let roleRepo: {
     findOne: jest.Mock;
+    findAndCount: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
     update: jest.Mock;
@@ -31,6 +32,7 @@ describe('RolesService', () => {
   beforeEach(async () => {
     roleRepo = {
       findOne: jest.fn(),
+      findAndCount: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
@@ -59,6 +61,49 @@ describe('RolesService', () => {
     }).compile();
 
     service = module.get<RolesService>(RolesService);
+  });
+
+  it('returns paginated roles in findAll', async () => {
+    roleRepo.findAndCount.mockResolvedValue([
+      [
+        {
+          id: 1,
+          name: 'Editor',
+          description: 'editor role',
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          permissions: [{ permission: { id: 1 } }, { permission: { id: 2 } }],
+        },
+      ],
+      12,
+    ]);
+
+    await expect(service.findAll(2, 5)).resolves.toEqual({
+      items: [
+        {
+          id: 1,
+          name: 'Editor',
+          description: 'editor role',
+          permissionCount: 2,
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        },
+      ],
+      total: 12,
+      page: 2,
+      limit: 5,
+    });
+
+    expect(roleRepo.findAndCount).toHaveBeenCalledWith({
+      skip: 5,
+      take: 5,
+      relations: {
+        permissions: {
+          permission: true,
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
   });
 
   it('rejects duplicate role names on create', async () => {
