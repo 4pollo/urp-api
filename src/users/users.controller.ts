@@ -33,6 +33,7 @@ export class UsersController {
       query.limit,
       query.status,
       query.roleId,
+      query.search,
     );
   }
 

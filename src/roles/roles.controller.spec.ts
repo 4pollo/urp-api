@@ -7,14 +7,19 @@ import { PermissionsService } from '../permissions/permissions.service';
 
 describe('RolesController', () => {
   let controller: RolesController;
+  let rolesService: { findAll: jest.Mock };
 
   beforeEach(async () => {
+    rolesService = {
+      findAll: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RolesController],
       providers: [
         {
           provide: RolesService,
-          useValue: {},
+          useValue: rolesService,
         },
         {
           provide: PermissionsService,
@@ -33,5 +38,17 @@ describe('RolesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('forwards list query params including search', async () => {
+    rolesService.findAll.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20 });
+
+    await controller.findAll({
+      page: 1,
+      limit: 20,
+      search: 'admin',
+    });
+
+    expect(rolesService.findAll).toHaveBeenCalledWith(1, 20, 'admin');
   });
 });

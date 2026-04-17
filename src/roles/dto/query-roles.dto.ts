@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class QueryRolesDto {
   @IsOptional()
@@ -14,4 +14,11 @@ export class QueryRolesDto {
   @Min(1)
   @Max(50)
   limit: number = 10;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || undefined : value,
+  )
+  @IsString()
+  search?: string;
 }

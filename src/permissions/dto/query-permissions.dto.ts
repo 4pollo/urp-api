@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class QueryPermissionsDto {
@@ -18,4 +18,11 @@ export class QueryPermissionsDto {
   @IsOptional()
   @IsString()
   group?: string;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || undefined : value,
+  )
+  @IsString()
+  search?: string;
 }

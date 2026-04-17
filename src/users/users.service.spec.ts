@@ -31,6 +31,15 @@ describe('UsersService', () => {
     findOne: jest.Mock;
     find: jest.Mock;
   };
+  let queryBuilder: {
+    leftJoinAndSelect: jest.Mock;
+    orderBy: jest.Mock;
+    skip: jest.Mock;
+    take: jest.Mock;
+    distinct: jest.Mock;
+    andWhere: jest.Mock;
+    getManyAndCount: jest.Mock;
+  };
   let transactionManager: {
     delete: jest.Mock;
     save: jest.Mock;
@@ -61,6 +70,16 @@ describe('UsersService', () => {
       findOne: jest.fn(),
       find: jest.fn(),
     };
+    queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      distinct: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn(),
+    };
+    userRepo.createQueryBuilder.mockReturnValue(queryBuilder);
     userRoleRepo = {
       save: jest.fn(),
       count: jest.fn(),
@@ -120,8 +139,8 @@ describe('UsersService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('returns paginated users with status filter', async () => {
-    userRepo.findAndCount.mockResolvedValue([
+  it('returns paginated users with combined filters', async () => {
+    queryBuilder.getManyAndCount.mockResolvedValue([
       [
         {
           id: 1,
@@ -135,14 +154,32 @@ describe('UsersService', () => {
       1,
     ]);
 
-    const result = await service.findAll(2, 5, UserStatus.ACTIVE);
+    const result = await service.findAll(
+      2,
+      5,
+      UserStatus.ACTIVE,
+      9,
+      'User',
+    );
 
-    expect(userRepo.findAndCount).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { status: UserStatus.ACTIVE },
-        skip: 5,
-        take: 5,
-      }),
+    expect(userRepo.createQueryBuilder).toHaveBeenCalledWith('user');
+    expect(queryBuilder.skip).toHaveBeenCalledWith(5);
+    expect(queryBuilder.take).toHaveBeenCalledWith(5);
+    expect(queryBuilder.distinct).toHaveBeenCalledWith(true);
+    expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
+      1,
+      'user.status = :status',
+      { status: UserStatus.ACTIVE },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
+      2,
+      'LOWER(user.email) LIKE :search',
+      { search: '%user%' },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('EXISTS'),
+      { roleId: 9 },
     );
     expect(result.total).toBe(1);
     expect(result.page).toBe(2);
@@ -156,23 +193,15 @@ describe('UsersService', () => {
     });
   });
 
-  it('uses the role query path when roleId is provided', async () => {
-    const queryBuilder = {
-      leftJoinAndSelect: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
-      take: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
-    };
-    userRepo.createQueryBuilder.mockReturnValue(queryBuilder);
+  it('does not add a search filter for blank search text', async () => {
+    queryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
 
-    await service.findAll(1, 10, undefined, 9);
+    await service.findAll(1, 10, undefined, undefined, undefined);
 
-    expect(userRepo.createQueryBuilder).toHaveBeenCalledWith('user');
-    expect(queryBuilder.where).toHaveBeenCalledWith('ur.roleId = :roleId', {
-      roleId: 9,
-    });
+    expect(queryBuilder.andWhere).not.toHaveBeenCalledWith(
+      'LOWER(user.email) LIKE :search',
+      expect.anything(),
+    );
   });
 
   it('throws when finding a missing user', async () => {

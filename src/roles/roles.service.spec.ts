@@ -19,6 +19,16 @@ describe('RolesService', () => {
     save: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
+    createQueryBuilder: jest.Mock;
+  };
+  let roleQueryBuilder: {
+    leftJoinAndSelect: jest.Mock;
+    orderBy: jest.Mock;
+    skip: jest.Mock;
+    take: jest.Mock;
+    distinct: jest.Mock;
+    andWhere: jest.Mock;
+    getManyAndCount: jest.Mock;
   };
   let permissionRepo: { find: jest.Mock };
   let transactionManager: {
@@ -37,7 +47,18 @@ describe('RolesService', () => {
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
     };
+    roleQueryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      distinct: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn(),
+    };
+    roleRepo.createQueryBuilder.mockReturnValue(roleQueryBuilder);
     permissionRepo = {
       find: jest.fn(),
     };
@@ -63,8 +84,8 @@ describe('RolesService', () => {
     service = module.get<RolesService>(RolesService);
   });
 
-  it('returns paginated roles in findAll', async () => {
-    roleRepo.findAndCount.mockResolvedValue([
+  it('returns paginated roles in findAll with search', async () => {
+    roleQueryBuilder.getManyAndCount.mockResolvedValue([
       [
         {
           id: 1,
@@ -77,7 +98,7 @@ describe('RolesService', () => {
       12,
     ]);
 
-    await expect(service.findAll(2, 5)).resolves.toEqual({
+    await expect(service.findAll(2, 5, 'Edit')).resolves.toEqual({
       items: [
         {
           id: 1,
@@ -92,18 +113,22 @@ describe('RolesService', () => {
       limit: 5,
     });
 
-    expect(roleRepo.findAndCount).toHaveBeenCalledWith({
-      skip: 5,
-      take: 5,
-      relations: {
-        permissions: {
-          permission: true,
-        },
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    expect(roleRepo.createQueryBuilder).toHaveBeenCalledWith('role');
+    expect(roleQueryBuilder.skip).toHaveBeenCalledWith(5);
+    expect(roleQueryBuilder.take).toHaveBeenCalledWith(5);
+    expect(roleQueryBuilder.distinct).toHaveBeenCalledWith(true);
+    expect(roleQueryBuilder.andWhere).toHaveBeenCalledWith(
+      '(LOWER(role.name) LIKE :search OR LOWER(role.description) LIKE :search)',
+      { search: '%edit%' },
+    );
+  });
+
+  it('does not add role search filter when search is empty', async () => {
+    roleQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(1, 10);
+
+    expect(roleQueryBuilder.andWhere).not.toHaveBeenCalled();
   });
 
   it('rejects duplicate role names on create', async () => {

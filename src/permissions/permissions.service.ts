@@ -24,19 +24,32 @@ export class PermissionsService {
     private rolePermissionRepo: Repository<RolePermission>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 10, group?: string) {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    group?: string,
+    search?: string,
+  ) {
     const skip = (page - 1) * limit;
-    const where = group ? { group } : {};
+    const queryBuilder = this.permissionRepo
+      .createQueryBuilder('permission')
+      .orderBy('permission.group', 'ASC')
+      .addOrderBy('permission.key', 'ASC')
+      .skip(skip)
+      .take(limit);
 
-    const [permissions, total] = await this.permissionRepo.findAndCount({
-      where,
-      skip,
-      take: limit,
-      order: {
-        group: 'ASC',
-        key: 'ASC',
-      },
-    });
+    if (group) {
+      queryBuilder.andWhere('permission.group = :group', { group });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(permission.key) LIKE :search OR LOWER(permission.description) LIKE :search)',
+        { search: `%${search.toLowerCase()}%` },
+      );
+    }
+
+    const [permissions, total] = await queryBuilder.getManyAndCount();
 
     return {
       items: permissions,

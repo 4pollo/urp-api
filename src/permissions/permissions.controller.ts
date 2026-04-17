@@ -33,6 +33,7 @@ export class PermissionsController {
       query.page,
       query.limit,
       query.group,
+      query.search,
     );
   }
 

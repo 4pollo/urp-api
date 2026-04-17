@@ -23,20 +23,25 @@ export class RolesService {
     private permissionRepo: Repository<Permission>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 10) {
+  async findAll(page: number = 1, limit: number = 10, search?: string) {
     const skip = (page - 1) * limit;
-    const [roles, total] = await this.roleRepo.findAndCount({
-      skip,
-      take: limit,
-      relations: {
-        permissions: {
-          permission: true,
-        },
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    const queryBuilder = this.roleRepo
+      .createQueryBuilder('role')
+      .leftJoinAndSelect('role.permissions', 'rolePermission')
+      .leftJoinAndSelect('rolePermission.permission', 'permission')
+      .orderBy('role.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .distinct(true);
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(LOWER(role.name) LIKE :search OR LOWER(role.description) LIKE :search)',
+        { search: `%${search.toLowerCase()}%` },
+      );
+    }
+
+    const [roles, total] = await queryBuilder.getManyAndCount();
 
     return {
       items: roles.map((role) => ({

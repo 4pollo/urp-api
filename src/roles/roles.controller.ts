@@ -27,7 +27,7 @@ export class RolesController {
 
   @Get()
   async findAll(@Query() query: QueryRolesDto) {
-    return this.rolesService.findAll(query.page, query.limit);
+    return this.rolesService.findAll(query.page, query.limit, query.search);
   }
 
   @Get(':id')

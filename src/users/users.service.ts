@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserRole } from './entities/user-role.entity';
 import { Role } from '../roles/entities/role.entity';
@@ -39,48 +39,43 @@ export class UsersService {
   async findAll(
     page: number = 1,
     limit: number = 10,
-    status?: string,
+    status?: UserStatus,
     roleId?: number,
+    search?: string,
   ) {
     const skip = (page - 1) * limit;
-    const where: FindOptionsWhere<User> = {};
+    const queryBuilder = this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'userRole')
+      .leftJoinAndSelect('userRole.role', 'role')
+      .orderBy('user.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .distinct(true);
 
     if (status === UserStatus.ACTIVE || status === UserStatus.FROZEN) {
-      where.status = status;
+      queryBuilder.andWhere('user.status = :status', { status });
+    }
+
+    if (search) {
+      queryBuilder.andWhere('LOWER(user.email) LIKE :search', {
+        search: `%${search.toLowerCase()}%`,
+      });
     }
 
     if (roleId) {
-      const [items, total] = await this.userRepo
-        .createQueryBuilder('user')
-        .leftJoinAndSelect('user.roles', 'ur')
-        .leftJoinAndSelect('ur.role', 'role')
-        .where('ur.roleId = :roleId', { roleId })
-        .skip(skip)
-        .take(limit)
-        .orderBy('user.createdAt', 'DESC')
-        .getManyAndCount();
-
-      return {
-        items: items.map((user) => this.toUserListItem(user)),
-        total,
-        page,
-        limit,
-      };
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1
+          FROM user_roles user_role_filter
+          WHERE user_role_filter.userId = user.id
+            AND user_role_filter.roleId = :roleId
+        )`,
+        { roleId },
+      );
     }
 
-    const [items, total] = await this.userRepo.findAndCount({
-      where,
-      skip,
-      take: limit,
-      relations: {
-        roles: {
-          role: true,
-        },
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    const [items, total] = await queryBuilder.getManyAndCount();
 
     return {
       items: items.map((user) => this.toUserListItem(user)),

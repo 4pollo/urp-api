@@ -19,6 +19,15 @@ describe('PermissionsService', () => {
     save: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
+    createQueryBuilder: jest.Mock;
+  };
+  let permissionQueryBuilder: {
+    orderBy: jest.Mock;
+    addOrderBy: jest.Mock;
+    skip: jest.Mock;
+    take: jest.Mock;
+    andWhere: jest.Mock;
+    getManyAndCount: jest.Mock;
   };
   let userRoleRepo: { find: jest.Mock };
 
@@ -30,7 +39,17 @@ describe('PermissionsService', () => {
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
     };
+    permissionQueryBuilder = {
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn(),
+    };
+    permissionRepo.createQueryBuilder.mockReturnValue(permissionQueryBuilder);
     userRoleRepo = {
       find: jest.fn(),
     };
@@ -48,13 +67,13 @@ describe('PermissionsService', () => {
     service = module.get<PermissionsService>(PermissionsService);
   });
 
-  it('returns paginated permissions in findAll', async () => {
-    permissionRepo.findAndCount.mockResolvedValue([
+  it('returns paginated permissions in findAll with group and search', async () => {
+    permissionQueryBuilder.getManyAndCount.mockResolvedValue([
       [{ id: 1, key: 'user:write', group: 'user', description: 'write user' }],
       18,
     ]);
 
-    await expect(service.findAll(2, 10, 'user')).resolves.toEqual({
+    await expect(service.findAll(2, 10, 'user', 'Write')).resolves.toEqual({
       items: [
         { id: 1, key: 'user:write', group: 'user', description: 'write user' },
       ],
@@ -63,15 +82,31 @@ describe('PermissionsService', () => {
       limit: 10,
     });
 
-    expect(permissionRepo.findAndCount).toHaveBeenCalledWith({
-      where: { group: 'user' },
-      skip: 10,
-      take: 10,
-      order: {
-        group: 'ASC',
-        key: 'ASC',
-      },
-    });
+    expect(permissionRepo.createQueryBuilder).toHaveBeenCalledWith('permission');
+    expect(permissionQueryBuilder.skip).toHaveBeenCalledWith(10);
+    expect(permissionQueryBuilder.take).toHaveBeenCalledWith(10);
+    expect(permissionQueryBuilder.andWhere).toHaveBeenNthCalledWith(
+      1,
+      'permission.group = :group',
+      { group: 'user' },
+    );
+    expect(permissionQueryBuilder.andWhere).toHaveBeenNthCalledWith(
+      2,
+      '(LOWER(permission.key) LIKE :search OR LOWER(permission.description) LIKE :search)',
+      { search: '%write%' },
+    );
+  });
+
+  it('does not add permission search filter when search is empty', async () => {
+    permissionQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(1, 10, 'user');
+
+    expect(permissionQueryBuilder.andWhere).toHaveBeenCalledTimes(1);
+    expect(permissionQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'permission.group = :group',
+      { group: 'user' },
+    );
   });
 
   it('rejects duplicate permission keys on create', async () => {
@@ -97,22 +132,17 @@ describe('PermissionsService', () => {
   });
 
   it('filters permissions by group in paginated findAll', async () => {
-    permissionRepo.findAndCount.mockResolvedValue([
+    permissionQueryBuilder.getManyAndCount.mockResolvedValue([
       [{ id: 1, key: 'user:write', group: 'user' }],
       1,
     ]);
 
     await service.findAll(1, 10, 'user');
 
-    expect(permissionRepo.findAndCount).toHaveBeenCalledWith({
-      where: { group: 'user' },
-      skip: 0,
-      take: 10,
-      order: {
-        group: 'ASC',
-        key: 'ASC',
-      },
-    });
+    expect(permissionQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'permission.group = :group',
+      { group: 'user' },
+    );
   });
 
   it('returns allowed when the user has the permission through any role', async () => {
