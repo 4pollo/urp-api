@@ -33,6 +33,12 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Request() req: { user: { userId: number } }) {
+    return this.authService.logout(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
     @Request() req: { user: { userId: number } },

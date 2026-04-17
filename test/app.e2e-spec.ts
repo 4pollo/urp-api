@@ -29,6 +29,7 @@ describe('Application e2e', () => {
     register: jest.Mock;
     login: jest.Mock;
     refreshToken: jest.Mock;
+    logout: jest.Mock;
     changePassword: jest.Mock;
     getMe: jest.Mock;
   };
@@ -71,6 +72,9 @@ describe('Application e2e', () => {
         };
       }),
       refreshToken: jest.fn(),
+      logout: jest.fn(async (userId: number) => ({
+        message: `logged out ${userId}`,
+      })),
       changePassword: jest.fn(),
       getMe: jest.fn(async (userId: number) => ({
         id: userId,
@@ -263,6 +267,29 @@ describe('Application e2e', () => {
         expect(body.code).toBe(0);
         expect(body.data.email).toBe('user@example.com');
       });
+  });
+
+  it('rejects logout without a token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/auth/logout')
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body.code).toBe(4001);
+        expect(body.message).toBe('Unauthorized');
+      });
+  });
+
+  it('logs out the current user', async () => {
+    await request(app.getHttpServer())
+      .post('/api/auth/logout')
+      .set('Authorization', 'Bearer user-token')
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.code).toBe(0);
+        expect(body.data).toEqual({ message: 'logged out 1' });
+      });
+
+    expect(authService.logout).toHaveBeenCalledWith(1);
   });
 
   it('blocks non-SuperAdmin users from admin-only endpoints', async () => {

@@ -170,6 +170,12 @@ export class AuthService {
     }
   }
 
+  async logout(userId: number) {
+    await this.clearRefreshToken(userId);
+
+    return { message: 'Logged out successfully' };
+  }
+
   async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
     const { oldPassword, newPassword } = changePasswordDto;
 

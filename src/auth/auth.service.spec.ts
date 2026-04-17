@@ -233,6 +233,16 @@ describe('AuthService', () => {
     );
   });
 
+  it('clears refresh tokens on logout', async () => {
+    const result = await service.logout(1);
+
+    expect(userRepo.update).toHaveBeenCalledWith(1, {
+      refreshTokenHash: null,
+      refreshTokenExpiresAt: null,
+    });
+    expect(result).toEqual({ message: 'Logged out successfully' });
+  });
+
   it('updates password and clears refresh tokens on changePassword', async () => {
     userRepo.findOne.mockResolvedValue({
       id: 1,
