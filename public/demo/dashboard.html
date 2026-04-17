@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户面板 - URP 权限管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #141414;
+            --color-bg-tertiary: #1f1f1f;
+            --color-surface: #2a2a2a;
+            --color-border: #333333;
+            --color-border-light: #404040;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #a3a3a3;
+            --color-text-tertiary: #737373;
+            --color-accent: #ffffff;
+            --color-accent-hover: #e5e5e5;
+            --spacing-unit: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--color-bg-primary);
+            min-height: 100vh;
+            color: var(--color-text-primary);
+        }
+
+        .header {
+            background: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-border);
+            padding: calc(var(--spacing-unit) * 3) 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 calc(var(--spacing-unit) * 4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Syne', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+        }
+
+        .nav {
+            display: flex;
+            gap: calc(var(--spacing-unit) * 4);
+            align-items: center;
+        }
+
+        .nav a {
+            color: var(--color-text-tertiary);
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .nav a:hover, .nav a.active {
+            color: var(--color-text-primary);
+        }
+
+        .nav a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--color-text-primary);
+        }
+
+        .logout-btn {
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            color: var(--color-text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .logout-btn:hover {
+            background: var(--color-bg-tertiary);
+            border-color: var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 4);
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+        }
+
+        .page-subtitle {
+            font-size: 12px;
+            color: var(--color-text-tertiary);
+            margin-bottom: calc(var(--spacing-unit) * 6);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: calc(var(--spacing-unit) * 3);
+            margin-bottom: calc(var(--spacing-unit) * 6);
+        }
+
+        .card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 2px;
+            padding: calc(var(--spacing-unit) * 4);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--color-border-light);
+            transform: translateY(-2px);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--color-text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: calc(var(--spacing-unit) * 2) 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--color-text-tertiary);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 12px;
+            color: var(--color-text-primary);
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1.5);
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            color: var(--color-text-primary);
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: calc(var(--spacing-unit) * 1);
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .badge.success {
+            background: var(--color-text-primary);
+            border-color: var(--color-text-primary);
+            color: var(--color-bg-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 3);
+            color: var(--color-text-tertiary);
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+
+        .permission-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: calc(var(--spacing-unit) * 1);
+            margin-top: calc(var(--spacing-unit) * 2);
+        }
+
+        .permission-item {
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            font-family: 'IBM Plex Mono', monospace;
+            transition: all 0.2s ease;
+        }
+
+        .permission-item:hover {
+            border-color: var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">URP</div>
+            <div class="nav">
+                <a href="/demo/dashboard.html" class="active">用户面板</a>
+                <a href="/demo/admin.html" id="adminLink" style="display: none;">管理面板</a>
+                <button class="logout-btn" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-title">用户面板</div>
+        <div class="page-subtitle">查看您的账户信息和权限</div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">账户信息</div>
+                <div class="info-row">
+                    <div class="info-label">邮箱</div>
+                    <div class="info-value" id="userEmail">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">状态</div>
+                    <div class="info-value"><span class="badge success" id="userStatus">-</span></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">最后登录</div>
+                    <div class="info-value" id="lastLogin">-</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">角色信息</div>
+                <div id="rolesContainer">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">我的权限</div>
+            <div id="permissionsContainer">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/demo/shared.js"></script>
+    <script>
+        const token = requireAuth();
+
+        function renderRoles(roles) {
+            const rolesContainer = document.getElementById('rolesContainer');
+            rolesContainer.replaceChildren();
+
+            if (!roles || roles.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.textContent = '暂无角色';
+                rolesContainer.appendChild(emptyState);
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            roles.forEach((role) => {
+                fragment.appendChild(createBadge(role.name));
+            });
+            rolesContainer.appendChild(fragment);
+
+            if (roles.some((role) => role.name === 'SuperAdmin')) {
+                document.getElementById('adminLink').style.display = 'block';
+            }
+        }
+
+        function renderPermissions(permissions) {
+            const permissionsContainer = document.getElementById('permissionsContainer');
+            permissionsContainer.replaceChildren();
+
+            if (!permissions || permissions.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.textContent = '暂无权限';
+                permissionsContainer.appendChild(emptyState);
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'permission-list';
+            permissions.forEach((permission) => {
+                const item = document.createElement('div');
+                item.className = 'permission-item';
+                item.textContent = permission;
+                wrapper.appendChild(item);
+            });
+            permissionsContainer.appendChild(wrapper);
+        }
+
+        async function fetchUserInfo() {
+            if (!token) return;
+
+            try {
+                const result = await apiRequest('/api/auth/me');
+
+                if (result.code === 0) {
+                    const user = result.data;
+                    document.getElementById('userEmail').textContent = user.email;
+                    document.getElementById('userStatus').textContent = user.status === 'active' ? '正常' : '冻结';
+                    document.getElementById('lastLogin').textContent = user.lastLoginAt
+                        ? new Date(user.lastLoginAt).toLocaleString('zh-CN')
+                        : '首次登录';
+                    renderRoles(user.roles);
+                }
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+            }
+        }
+
+        async function fetchPermissions() {
+            if (!token) return;
+
+            try {
+                const result = await apiRequest('/api/permissions/me');
+                if (result.code === 0) {
+                    renderPermissions(result.data.permissions || []);
+                }
+            } catch (error) {
+                console.error('获取权限失败:', error);
+            }
+        }
+
+        function logout() {
+            redirectToLogin();
+        }
+
+        fetchUserInfo();
+        fetchPermissions();
+    </script>
+</body>
+</html>

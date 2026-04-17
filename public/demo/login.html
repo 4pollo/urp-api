@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - URP 权限管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #141414;
+            --color-bg-tertiary: #1f1f1f;
+            --color-surface: #2a2a2a;
+            --color-border: #333333;
+            --color-border-light: #404040;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #a3a3a3;
+            --color-text-tertiary: #737373;
+            --color-accent: #ffffff;
+            --color-accent-hover: #e5e5e5;
+            --spacing-unit: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            color: var(--color-text-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .left-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: calc(var(--spacing-unit) * 8);
+            border-right: 1px solid var(--color-border);
+            animation: slideInLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            background: var(--color-bg-primary);
+            position: relative;
+        }
+
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.01) 2px, rgba(255, 255, 255, 0.01) 4px);
+            pointer-events: none;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .right-panel {
+            flex: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: calc(var(--spacing-unit) * 8);
+            background: #ffffff;
+            animation: slideInRight 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .brand {
+            margin-bottom: calc(var(--spacing-unit) * 8);
+        }
+
+        .brand-logo {
+            font-family: 'Syne', sans-serif;
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            line-height: 0.9;
+        }
+
+        .brand-tagline {
+            font-size: 14px;
+            color: var(--color-text-tertiary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: calc(var(--spacing-unit) * 4);
+        }
+
+        .brand-description {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            line-height: 1.8;
+            max-width: 400px;
+        }
+
+        .feature-list {
+            margin-top: calc(var(--spacing-unit) * 6);
+            display: flex;
+            flex-direction: column;
+            gap: calc(var(--spacing-unit) * 2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: calc(var(--spacing-unit) * 2);
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        .feature-item::before {
+            content: '—';
+            color: var(--color-text-tertiary);
+        }
+
+        .card {
+            width: 100%;
+            max-width: 420px;
+            padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 5);
+            position: relative;
+        }
+
+        .card .logo {
+            color: #0a0a0a;
+        }
+
+        .card .subtitle {
+            color: #737373;
+        }
+
+        .card label {
+            color: #737373;
+        }
+
+        .card input {
+            background: #f5f5f5;
+            border: 1px solid #e5e5e5;
+            color: #0a0a0a;
+        }
+
+        .card input:hover {
+            border-color: #d4d4d4;
+        }
+
+        .card input:focus {
+            background: #ffffff;
+            border-color: #0a0a0a;
+            box-shadow: 0 0 0 1px #0a0a0a;
+        }
+
+        .card input::placeholder {
+            color: #a3a3a3;
+        }
+
+        .card input:autofill,
+        .card input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px #f5f5f5 inset;
+            -webkit-text-fill-color: #0a0a0a;
+        }
+
+        .card .btn {
+            background: #0a0a0a;
+            color: #ffffff;
+        }
+
+        .card .btn:hover {
+            background: #1a1a1a;
+        }
+
+        .card .link {
+            color: #737373;
+        }
+
+        .card .link a {
+            color: #0a0a0a;
+            border-bottom-color: #e5e5e5;
+        }
+
+        .card .link a:hover {
+            color: #404040;
+            border-bottom-color: #d4d4d4;
+        }
+
+        .card .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .card .success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+                padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 4);
+            }
+
+            .brand-logo {
+                font-size: 48px;
+            }
+
+            .feature-list {
+                display: none;
+            }
+        }
+
+        .logo {
+            font-family: 'Syne', sans-serif;
+            font-size: 40px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--color-text-tertiary);
+            margin-bottom: calc(var(--spacing-unit) * 6);
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: calc(var(--spacing-unit) * 3);
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: calc(var(--spacing-unit) * 2.5) calc(var(--spacing-unit) * 2);
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            color: var(--color-text-primary);
+            font-size: 13px;
+            font-family: 'IBM Plex Mono', monospace;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        input:hover {
+            border-color: var(--color-border-light);
+        }
+
+        input:focus {
+            outline: none;
+            background: var(--color-bg-secondary);
+            border-color: var(--color-text-primary);
+            box-shadow: 0 0 0 1px var(--color-text-primary);
+            transform: translateY(-1px);
+        }
+
+        input::placeholder {
+            color: var(--color-text-tertiary);
+            font-size: 12px;
+        }
+
+        input:autofill,
+        input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px var(--color-bg-primary) inset;
+            -webkit-text-fill-color: var(--color-text-primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: calc(var(--spacing-unit) * 2);
+            background: var(--color-text-primary);
+            border: none;
+            border-radius: 1px;
+            color: var(--color-bg-primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: calc(var(--spacing-unit) * 4);
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            background: var(--color-accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: calc(var(--spacing-unit) * 4);
+            font-size: 12px;
+            color: var(--color-text-tertiary);
+        }
+
+        .link a {
+            color: var(--color-text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .link a:hover {
+            color: var(--color-text-secondary);
+            border-bottom-color: var(--color-text-secondary);
+        }
+
+        .error {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--color-text-primary);
+            padding: calc(var(--spacing-unit) * 2);
+            border-radius: 1px;
+            font-size: 12px;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            animation: shake 0.4s ease;
+            position: relative;
+        }
+
+        .error::before {
+            content: '!';
+            position: absolute;
+            left: calc(var(--spacing-unit) * 2);
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            margin-right: calc(var(--spacing-unit) * 1);
+        }
+
+        .error {
+            padding-left: calc(var(--spacing-unit) * 5);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .success {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--color-text-primary);
+            padding: calc(var(--spacing-unit) * 2);
+            border-radius: 1px;
+            font-size: 12px;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="brand">
+                <div class="brand-logo">URP</div>
+                <div class="brand-tagline">权限管理系统</div>
+                <div class="brand-description">
+                    企业级 RBAC 权限管理解决方案，提供完整的用户、角色和权限控制能力。基于 NestJS 构建，支持 JWT 认证和多角色授权。
+                </div>
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-item">基于角色的访问控制 (RBAC)</div>
+                <div class="feature-item">JWT 双令牌认证机制</div>
+                <div class="feature-item">细粒度权限管理</div>
+                <div class="feature-item">多角色支持与权限继承</div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="card">
+                <div class="logo">登录</div>
+                <div class="subtitle">访问您的账户</div>
+
+                <div id="message"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">邮箱地址</label>
+                        <input type="email" id="email" placeholder="your@email.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" placeholder="输入密码" required autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">登录</button>
+                </form>
+
+                <div class="link">
+                    还没有账号？<a href="/demo/register.html">立即注册</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/demo/shared.js"></script>
+    <script>
+        const form = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登录中...';
+            clearMessage(messageDiv);
+
+            try {
+                const result = await apiRequest('/api/auth/login', {
+                    method: 'POST',
+                    auth: false,
+                    body: JSON.stringify({ email, password }),
+                });
+
+                if (result.code === 0) {
+                    localStorage.setItem('accessToken', result.data.accessToken);
+                    localStorage.setItem('refreshToken', result.data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(result.data.user));
+
+                    setMessage(messageDiv, 'success', '登录成功！正在跳转...');
+
+                    setTimeout(() => {
+                        window.location.href = '/demo/dashboard.html';
+                    }, 1000);
+                    return;
+                }
+
+                setMessage(messageDiv, 'error', result.message || '登录失败，请检查邮箱和密码');
+            } catch (error) {
+                setMessage(messageDiv, 'error', '网络错误，请稍后重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登录';
+            }
+        });
+    </script>
+</body>
+</html>

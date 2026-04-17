@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理面板 - URP 权限管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #141414;
+            --color-bg-tertiary: #1f1f1f;
+            --color-surface: #2a2a2a;
+            --color-border: #333333;
+            --color-border-light: #404040;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #a3a3a3;
+            --color-text-tertiary: #737373;
+            --color-accent: #ffffff;
+            --color-accent-hover: #e5e5e5;
+            --spacing-unit: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--color-bg-primary);
+            min-height: 100vh;
+            color: var(--color-text-primary);
+        }
+
+        .header {
+            background: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-border);
+            padding: calc(var(--spacing-unit) * 3) 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 calc(var(--spacing-unit) * 4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Syne', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+        }
+
+        .nav {
+            display: flex;
+            gap: calc(var(--spacing-unit) * 4);
+            align-items: center;
+        }
+
+        .nav a {
+            color: var(--color-text-tertiary);
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .nav a:hover, .nav a.active {
+            color: var(--color-text-primary);
+        }
+
+        .nav a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--color-text-primary);
+        }
+
+        .logout-btn {
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            color: var(--color-text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .logout-btn:hover {
+            background: var(--color-bg-tertiary);
+            border-color: var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 4);
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+        }
+
+        .page-subtitle {
+            font-size: 12px;
+            color: var(--color-text-tertiary);
+            margin-bottom: calc(var(--spacing-unit) * 6);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .tabs {
+            display: flex;
+            gap: calc(var(--spacing-unit) * 1);
+            margin-bottom: calc(var(--spacing-unit) * 4);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .tab {
+            padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+            background: transparent;
+            border: none;
+            color: var(--color-text-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .tab:hover {
+            color: var(--color-text-primary);
+        }
+
+        .tab.active {
+            color: var(--color-text-primary);
+            border-bottom-color: var(--color-text-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 2px;
+            padding: calc(var(--spacing-unit) * 4);
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: calc(var(--spacing-unit) * 2);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--color-text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        td {
+            padding: calc(var(--spacing-unit) * 2);
+            font-size: 12px;
+            color: var(--color-text-primary);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: var(--color-bg-tertiary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1.5);
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            color: var(--color-text-primary);
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: calc(var(--spacing-unit) * 1);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .badge.success {
+            background: var(--color-text-primary);
+            border-color: var(--color-text-primary);
+            color: var(--color-bg-primary);
+        }
+
+        .badge.danger {
+            background: var(--color-bg-primary);
+            border-color: var(--color-border-light);
+            color: var(--color-text-secondary);
+        }
+
+        .btn {
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 1px;
+            color: var(--color-text-secondary);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: var(--color-bg-tertiary);
+            border-color: var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+
+        .btn-danger {
+            border-color: var(--color-border);
+            color: var(--color-text-tertiary);
+        }
+
+        .btn-danger:hover {
+            background: var(--color-text-primary);
+            border-color: var(--color-text-primary);
+            color: var(--color-bg-primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: calc(var(--spacing-unit) * 1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 3);
+            color: var(--color-text-tertiary);
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 3);
+            color: var(--color-text-tertiary);
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+
+        .status-message {
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            padding: calc(var(--spacing-unit) * 2);
+            border: 1px solid var(--color-border);
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .status-message.error {
+            color: #fca5a5;
+            border-color: #7f1d1d;
+            background: rgba(127, 29, 29, 0.2);
+        }
+
+        .status-message.success {
+            color: #86efac;
+            border-color: #166534;
+            background: rgba(22, 101, 52, 0.2);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: calc(var(--spacing-unit) * 2);
+            margin-top: calc(var(--spacing-unit) * 3);
+            font-size: 11px;
+            color: var(--color-text-secondary);
+        }
+
+        .pagination-actions {
+            display: flex;
+            gap: calc(var(--spacing-unit) * 1);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: calc(var(--spacing-unit) * 3);
+            margin-bottom: calc(var(--spacing-unit) * 4);
+        }
+
+        .stat-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 2px;
+            padding: calc(var(--spacing-unit) * 3);
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--color-border-light);
+            transform: translateY(-2px);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--color-text-tertiary);
+            font-weight: 600;
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--color-text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            background: var(--color-bg-primary);
+            padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1);
+            border-radius: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">URP</div>
+            <div class="nav">
+                <a href="/demo/dashboard.html">用户面板</a>
+                <a href="/demo/admin.html" class="active">管理面板</a>
+                <button class="logout-btn" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-title">管理面板</div>
+        <div class="page-subtitle">管理用户、角色和权限</div>
+
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">总用户数</div>
+                <div class="stat-value" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">总角色数</div>
+                <div class="stat-value" id="totalRoles">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">总权限数</div>
+                <div class="stat-value" id="totalPermissions">-</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('users')">用户管理</button>
+            <button class="tab" onclick="switchTab('roles')">角色管理</button>
+            <button class="tab" onclick="switchTab('permissions')">权限管理</button>
+        </div>
+
+        <div id="users" class="tab-content active">
+            <div class="card">
+                <div class="table-container">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>邮箱</th>
+                                <th>状态</th>
+                                <th>角色</th>
+                                <th>最后登录</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <div id="usersPaginationInfo">第 1 页</div>
+                    <div class="pagination-actions">
+                        <button class="btn" id="prevPageBtn" type="button">上一页</button>
+                        <button class="btn" id="nextPageBtn" type="button">下一页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="roles" class="tab-content">
+            <div class="card">
+                <div class="table-container">
+                    <table id="rolesTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>角色名</th>
+                                <th>描述</th>
+                                <th>权限数量</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rolesTableBody">
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="permissions" class="tab-content">
+            <div class="card">
+                <div class="table-container">
+                    <table id="permissionsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>权限标识</th>
+                                <th>分组</th>
+                                <th>描述</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="permissionsTableBody">
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/demo/shared.js"></script>
+    <script>
+        const token = requireAuth();
+        const statusMessage = document.getElementById('statusMessage');
+        const usersTableBody = document.getElementById('usersTableBody');
+        const rolesTableBody = document.getElementById('rolesTableBody');
+        const permissionsTableBody = document.getElementById('permissionsTableBody');
+        const usersPaginationInfo = document.getElementById('usersPaginationInfo');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+
+        let currentTab = 'users';
+        let usersPage = 1;
+        const usersLimit = 10;
+        let usersTotal = 0;
+
+        function showStatus(type, text) {
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.textContent = text;
+            statusMessage.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+            statusMessage.textContent = '';
+            statusMessage.className = 'status-message';
+        }
+
+        function setLoading(tbody, colspan) {
+            tbody.replaceChildren(createEmptyRow(colspan, '加载中...', 'loading'));
+        }
+
+        function setEmpty(tbody, colspan, text) {
+            tbody.replaceChildren(createEmptyRow(colspan, text));
+        }
+
+        function createCell(text) {
+            const cell = document.createElement('td');
+            cell.textContent = text;
+            return cell;
+        }
+
+        function createUserRow(user) {
+            const row = document.createElement('tr');
+            row.appendChild(createCell(String(user.id)));
+            row.appendChild(createCell(user.email));
+
+            const statusCell = document.createElement('td');
+            statusCell.appendChild(createBadge(user.status === 'active' ? '正常' : '冻结', `badge ${user.status === 'active' ? 'success' : 'danger'}`));
+            row.appendChild(statusCell);
+
+            const rolesCell = document.createElement('td');
+            user.roles.forEach((role) => rolesCell.appendChild(createBadge(role.name)));
+            row.appendChild(rolesCell);
+
+            row.appendChild(createCell(user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('zh-CN') : '-'));
+
+            const actionsCell = document.createElement('td');
+            const actions = document.createElement('div');
+            actions.className = 'btn-group';
+
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'btn';
+            toggleBtn.type = 'button';
+            toggleBtn.textContent = user.status === 'active' ? '冻结' : '激活';
+            toggleBtn.addEventListener('click', () => toggleUserStatus(user.id, user.status));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger';
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '删除';
+            deleteBtn.addEventListener('click', () => deleteUser(user.id, user.email));
+
+            actions.appendChild(toggleBtn);
+            actions.appendChild(deleteBtn);
+            actionsCell.appendChild(actions);
+            row.appendChild(actionsCell);
+
+            return row;
+        }
+
+        function createRoleRow(role) {
+            const row = document.createElement('tr');
+            row.appendChild(createCell(String(role.id)));
+
+            const nameCell = document.createElement('td');
+            nameCell.appendChild(createBadge(role.name));
+            row.appendChild(nameCell);
+            row.appendChild(createCell(role.description || '-'));
+            row.appendChild(createCell(String(role.permissionCount)));
+            row.appendChild(createCell(new Date(role.createdAt).toLocaleString('zh-CN')));
+
+            const actionsCell = document.createElement('td');
+            const actions = document.createElement('div');
+            actions.className = 'btn-group';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn';
+            editBtn.type = 'button';
+            editBtn.textContent = '编辑';
+            editBtn.addEventListener('click', () => editRole(role.id, role.name, role.description || ''));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger';
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '删除';
+            deleteBtn.addEventListener('click', () => deleteRole(role.id, role.name));
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+            actionsCell.appendChild(actions);
+            row.appendChild(actionsCell);
+            return row;
+        }
+
+        function createPermissionRow(permission) {
+            const row = document.createElement('tr');
+            row.appendChild(createCell(String(permission.id)));
+
+            const keyCell = document.createElement('td');
+            const code = document.createElement('span');
+            code.className = 'code';
+            code.textContent = permission.key;
+            keyCell.appendChild(code);
+            row.appendChild(keyCell);
+
+            const groupCell = document.createElement('td');
+            groupCell.appendChild(createBadge(permission.group));
+            row.appendChild(groupCell);
+            row.appendChild(createCell(permission.description || '-'));
+            row.appendChild(createCell(new Date(permission.createdAt).toLocaleString('zh-CN')));
+
+            const actionsCell = document.createElement('td');
+            const actions = document.createElement('div');
+            actions.className = 'btn-group';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn';
+            editBtn.type = 'button';
+            editBtn.textContent = '编辑';
+            editBtn.addEventListener('click', () => editPermission(permission.id, permission.key, permission.group, permission.description || ''));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger';
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '删除';
+            deleteBtn.addEventListener('click', () => deletePermission(permission.id, permission.key));
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+            actionsCell.appendChild(actions);
+            row.appendChild(actionsCell);
+            return row;
+        }
+
+        function updatePagination(total, page, limit) {
+            usersTotal = total;
+            const totalPages = Math.max(1, Math.ceil(total / limit));
+            usersPaginationInfo.textContent = `第 ${page} / ${totalPages} 页 · 共 ${total} 条`;
+            prevPageBtn.disabled = page <= 1;
+            nextPageBtn.disabled = page >= totalPages;
+        }
+
+        async function checkAdminPermission() {
+            if (!token) return false;
+
+            try {
+                const result = await apiRequest('/api/auth/me');
+                if (result.code !== 0) {
+                    redirectToLogin();
+                    return false;
+                }
+
+                const isSuperAdmin = result.data.roles.some((role) => role.name === 'SuperAdmin');
+                if (!isSuperAdmin) {
+                    showStatus('error', '访问被拒绝：您没有管理员权限');
+                    setTimeout(() => {
+                        window.location.href = '/demo/dashboard.html';
+                    }, 1200);
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                console.error('权限验证失败:', error);
+                redirectToLogin();
+                return false;
+            }
+        }
+
+        function switchTab(tab, button) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach((item) => item.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach((item) => item.classList.remove('active'));
+            button.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+            hideStatus();
+
+            if (tab === 'users') loadUsers();
+            if (tab === 'roles') loadRoles();
+            if (tab === 'permissions') loadPermissions();
+        }
+
+        document.querySelectorAll('.tab').forEach((button) => {
+            button.addEventListener('click', () => {
+                const tab = button.textContent.includes('用户') ? 'users' : button.textContent.includes('角色') ? 'roles' : 'permissions';
+                switchTab(tab, button);
+            });
+        });
+
+        async function loadUsers() {
+            if (!token) return;
+
+            setLoading(usersTableBody, 6);
+            try {
+                const result = await apiRequest(`/api/users?page=${usersPage}&limit=${usersLimit}`);
+                if (result.code !== 0) {
+                    showStatus('error', result.message || '加载用户失败');
+                    setEmpty(usersTableBody, 6, '加载失败');
+                    return;
+                }
+
+                const { items, total, page, limit } = result.data;
+                usersTableBody.replaceChildren();
+
+                if (items.length === 0) {
+                    setEmpty(usersTableBody, 6, '暂无用户');
+                } else {
+                    items.forEach((user) => usersTableBody.appendChild(createUserRow(user)));
+                }
+
+                document.getElementById('totalUsers').textContent = String(total);
+                updatePagination(total, page, limit);
+            } catch (error) {
+                console.error('加载用户失败:', error);
+                showStatus('error', '加载用户失败，请稍后重试');
+                setEmpty(usersTableBody, 6, '加载失败');
+            }
+        }
+
+        async function loadRoles() {
+            if (!token) return;
+
+            setLoading(rolesTableBody, 6);
+            try {
+                const result = await apiRequest('/api/roles');
+                if (result.code !== 0) {
+                    showStatus('error', result.message || '加载角色失败');
+                    setEmpty(rolesTableBody, 6, '加载失败');
+                    return;
+                }
+
+                rolesTableBody.replaceChildren();
+                if (result.data.length === 0) {
+                    setEmpty(rolesTableBody, 6, '暂无角色');
+                } else {
+                    result.data.forEach((role) => rolesTableBody.appendChild(createRoleRow(role)));
+                }
+                document.getElementById('totalRoles').textContent = String(result.data.length);
+            } catch (error) {
+                console.error('加载角色失败:', error);
+                showStatus('error', '加载角色失败，请稍后重试');
+                setEmpty(rolesTableBody, 6, '加载失败');
+            }
+        }
+
+        async function loadPermissions() {
+            if (!token) return;
+
+            setLoading(permissionsTableBody, 6);
+            try {
+                const result = await apiRequest('/api/permissions');
+                if (result.code !== 0) {
+                    showStatus('error', result.message || '加载权限失败');
+                    setEmpty(permissionsTableBody, 6, '加载失败');
+                    return;
+                }
+
+                permissionsTableBody.replaceChildren();
+                if (result.data.length === 0) {
+                    setEmpty(permissionsTableBody, 6, '暂无权限');
+                } else {
+                    result.data.forEach((permission) => permissionsTableBody.appendChild(createPermissionRow(permission)));
+                }
+                document.getElementById('totalPermissions').textContent = String(result.data.length);
+            } catch (error) {
+                console.error('加载权限失败:', error);
+                showStatus('error', '加载权限失败，请稍后重试');
+                setEmpty(permissionsTableBody, 6, '加载失败');
+            }
+        }
+
+        async function toggleUserStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'frozen' : 'active';
+            try {
+                const result = await apiRequest(`/api/users/${userId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: newStatus }),
+                });
+                if (result.code === 0) {
+                    showStatus('success', '用户状态更新成功');
+                    await loadUsers();
+                    return;
+                }
+                showStatus('error', result.message || '操作失败');
+            } catch (error) {
+                showStatus('error', '操作失败，请稍后重试');
+            }
+        }
+
+        async function deleteUser(userId, email) {
+            if (!confirm(`确定要删除用户 "${email}" 吗？此操作不可恢复。`)) return;
+            try {
+                const result = await apiRequest(`/api/users/${userId}`, { method: 'DELETE' });
+                if (result.code === 0) {
+                    showStatus('success', '用户删除成功');
+                    if ((usersTotal - 1) <= (usersPage - 1) * usersLimit && usersPage > 1) {
+                        usersPage -= 1;
+                    }
+                    await loadUsers();
+                    return;
+                }
+                showStatus('error', result.message || '删除失败');
+            } catch (error) {
+                showStatus('error', '删除失败，请稍后重试');
+            }
+        }
+
+        async function editRole(id, name, description) {
+            const newName = prompt('编辑角色名称:', name);
+            if (!newName || newName === name) return;
+            const newDescription = prompt('编辑角色描述:', description);
+            try {
+                const result = await apiRequest(`/api/roles/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        name: newName,
+                        description: newDescription || description,
+                    }),
+                });
+                if (result.code === 0) {
+                    showStatus('success', '角色更新成功');
+                    await loadRoles();
+                    return;
+                }
+                showStatus('error', result.message || '更新失败');
+            } catch (error) {
+                showStatus('error', '更新失败，请稍后重试');
+            }
+        }
+
+        async function deleteRole(id, name) {
+            if (!confirm(`确定要删除角色 "${name}" 吗？此操作不可恢复。`)) return;
+            try {
+                const result = await apiRequest(`/api/roles/${id}`, { method: 'DELETE' });
+                if (result.code === 0) {
+                    showStatus('success', '角色删除成功');
+                    await loadRoles();
+                    return;
+                }
+                showStatus('error', result.message || '删除失败');
+            } catch (error) {
+                showStatus('error', '删除失败，请稍后重试');
+            }
+        }
+
+        async function editPermission(id, key, group, description) {
+            const newKey = prompt('编辑权限标识 (格式: resource:action):', key);
+            if (!newKey || newKey === key) return;
+            const newGroup = prompt('编辑权限分组:', group);
+            const newDescription = prompt('编辑权限描述:', description);
+            try {
+                const result = await apiRequest(`/api/permissions/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        key: newKey,
+                        group: newGroup || group,
+                        description: newDescription || description,
+                    }),
+                });
+                if (result.code === 0) {
+                    showStatus('success', '权限更新成功');
+                    await loadPermissions();
+                    return;
+                }
+                showStatus('error', result.message || '更新失败');
+            } catch (error) {
+                showStatus('error', '更新失败，请稍后重试');
+            }
+        }
+
+        async function deletePermission(id, key) {
+            if (!confirm(`确定要删除权限 "${key}" 吗？此操作不可恢复。`)) return;
+            try {
+                const result = await apiRequest(`/api/permissions/${id}`, { method: 'DELETE' });
+                if (result.code === 0) {
+                    showStatus('success', '权限删除成功');
+                    await loadPermissions();
+                    return;
+                }
+                showStatus('error', result.message || '删除失败');
+            } catch (error) {
+                showStatus('error', '删除失败，请稍后重试');
+            }
+        }
+
+        function logout() {
+            redirectToLogin();
+        }
+
+        prevPageBtn.addEventListener('click', async () => {
+            if (usersPage <= 1) return;
+            usersPage -= 1;
+            await loadUsers();
+        });
+
+        nextPageBtn.addEventListener('click', async () => {
+            const totalPages = Math.max(1, Math.ceil(usersTotal / usersLimit));
+            if (usersPage >= totalPages) return;
+            usersPage += 1;
+            await loadUsers();
+        });
+
+        (async () => {
+            const allowed = await checkAdminPermission();
+            if (!allowed) return;
+            await loadUsers();
+            await loadRoles();
+            await loadPermissions();
+        })();
+    </script>
+</body>
+</html>
