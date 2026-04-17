@@ -219,7 +219,14 @@ export class UsersService {
   }
 
   async assignRoles(id: number, assignRolesDto: AssignRolesDto) {
-    const user = await this.userRepo.findOne({ where: { id } });
+    const user = await this.userRepo.findOne({
+      where: { id },
+      relations: {
+        roles: {
+          role: true,
+        },
+      },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -231,6 +238,31 @@ export class UsersService {
 
     if (roles.length !== assignRolesDto.roleIds.length) {
       throw new BadRequestException('One or more roles do not exist');
+    }
+
+    const hasSuperAdminRole = user.roles.some(
+      (userRole) => userRole.role.name === 'SuperAdmin',
+    );
+    const keepsSuperAdminRole = roles.some((role) => role.name === 'SuperAdmin');
+
+    if (hasSuperAdminRole && !keepsSuperAdminRole) {
+      const superAdminRole = await this.roleRepo.findOne({
+        where: { name: 'SuperAdmin' },
+      });
+
+      if (!superAdminRole) {
+        throw new BadRequestException('SuperAdmin role does not exist');
+      }
+
+      const superAdminCount = await this.userRoleRepo.count({
+        where: { roleId: superAdminRole.id },
+      });
+
+      if (superAdminCount === 1) {
+        throw new BadRequestException(
+          'The last SuperAdmin cannot be removed',
+        );
+      }
     }
 
     await this.userRoleRepo.manager.transaction(async (manager) => {

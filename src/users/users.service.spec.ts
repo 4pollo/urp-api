@@ -38,6 +38,7 @@ describe('UsersService', () => {
   };
   let userRoleRepo: {
     save: jest.Mock;
+    count: jest.Mock;
     manager: { transaction: jest.Mock };
   };
 
@@ -62,6 +63,7 @@ describe('UsersService', () => {
     };
     userRoleRepo = {
       save: jest.fn(),
+      count: jest.fn(),
       manager: {
         transaction: jest.fn(async (callback: (manager: typeof transactionManager) => Promise<void>) => callback(transactionManager)),
       },
@@ -203,7 +205,7 @@ describe('UsersService', () => {
   });
 
   it('rejects assignRoles when any role id is missing', async () => {
-    userRepo.findOne.mockResolvedValue({ id: 1 });
+    userRepo.findOne.mockResolvedValue({ id: 1, roles: [] });
     roleRepo.find.mockResolvedValue([{ id: 2 }]);
 
     await expect(
@@ -211,8 +213,22 @@ describe('UsersService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('rejects removing the last SuperAdmin role from a user', async () => {
+    userRepo.findOne.mockResolvedValue({
+      id: 1,
+      roles: [{ role: { id: 1, name: 'SuperAdmin' } }],
+    });
+    roleRepo.find.mockResolvedValue([{ id: 2, name: 'Editor' }]);
+    roleRepo.findOne.mockResolvedValue({ id: 1, name: 'SuperAdmin' });
+    userRoleRepo.count.mockResolvedValue(1);
+
+    await expect(
+      service.assignRoles(1, { roleIds: [2] }),
+    ).rejects.toThrow('The last SuperAdmin cannot be removed');
+  });
+
   it('replaces user roles in a transaction and clears refresh tokens', async () => {
-    userRepo.findOne.mockResolvedValue({ id: 1 });
+    userRepo.findOne.mockResolvedValue({ id: 1, roles: [] });
     roleRepo.find.mockResolvedValue([{ id: 2 }, { id: 3 }]);
 
     const result = await service.assignRoles(1, { roleIds: [2, 3] });
