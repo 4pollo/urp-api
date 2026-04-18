@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
   MinLength,
@@ -30,9 +31,15 @@ function IsDifferentFromOldPassword(validationOptions?: ValidationOptions) {
 }
 
 export class ChangePasswordDto {
+  @ApiProperty({ description: '当前密码' })
   @IsString()
   oldPassword: string;
 
+  @ApiProperty({
+    description: '新密码，至少 6 位且不能与当前密码相同',
+    minLength: 6,
+    example: 'newPassword123',
+  })
   @IsString()
   @MinLength(6)
   @IsDifferentFromOldPassword({

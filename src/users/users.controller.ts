@@ -11,6 +11,15 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -21,11 +30,16 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccessGuard } from '../auth/access.guard';
 import { RequireRoles } from '../auth/access.decorator';
 
+@ApiTags('Users')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: '未提供或提供了无效的 JWT。' })
 @Controller('api/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  @ApiOperation({ summary: '分页查询用户列表' })
+  @ApiBadRequestResponse({ description: '查询参数校验失败。' })
   @Get()
   async findAll(@Query() query: QueryUsersDto) {
     return this.usersService.findAll(
@@ -37,11 +51,16 @@ export class UsersController {
     );
   }
 
+  @ApiOperation({ summary: '获取单个用户详情' })
+  @ApiNotFoundResponse({ description: '用户不存在。' })
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
 
+  @ApiOperation({ summary: '创建用户' })
+  @ApiBadRequestResponse({ description: '请求参数校验失败。' })
+  @ApiForbiddenResponse({ description: '需要 SuperAdmin 角色。' })
   @Post()
   @UseGuards(AccessGuard)
   @RequireRoles('SuperAdmin')
@@ -49,6 +68,9 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  @ApiOperation({ summary: '更新用户信息' })
+  @ApiBadRequestResponse({ description: '请求参数校验失败。' })
+  @ApiNotFoundResponse({ description: '用户不存在。' })
   @Put(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -57,6 +79,9 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  @ApiOperation({ summary: '删除用户' })
+  @ApiForbiddenResponse({ description: '需要 SuperAdmin 角色。' })
+  @ApiNotFoundResponse({ description: '用户不存在。' })
   @Delete(':id')
   @UseGuards(AccessGuard)
   @RequireRoles('SuperAdmin')
@@ -64,6 +89,10 @@ export class UsersController {
     return this.usersService.remove(id);
   }
 
+  @ApiOperation({ summary: '更新用户状态' })
+  @ApiBadRequestResponse({ description: '请求参数校验失败。' })
+  @ApiForbiddenResponse({ description: '需要 SuperAdmin 角色。' })
+  @ApiNotFoundResponse({ description: '用户不存在。' })
   @Patch(':id/status')
   @UseGuards(AccessGuard)
   @RequireRoles('SuperAdmin')
@@ -74,6 +103,10 @@ export class UsersController {
     return this.usersService.updateStatus(id, updateUserStatusDto);
   }
 
+  @ApiOperation({ summary: '为用户分配角色' })
+  @ApiBadRequestResponse({ description: '请求参数校验失败。' })
+  @ApiForbiddenResponse({ description: '需要 SuperAdmin 角色。' })
+  @ApiNotFoundResponse({ description: '用户或角色不存在。' })
   @Put(':id/roles')
   @UseGuards(AccessGuard)
   @RequireRoles('SuperAdmin')

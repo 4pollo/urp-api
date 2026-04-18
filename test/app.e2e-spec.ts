@@ -326,7 +326,13 @@ describe('Application e2e', () => {
       .set('Authorization', 'Bearer admin-token')
       .expect(200);
 
-    expect(usersService.findAll).toHaveBeenCalledWith(1, 10, undefined, undefined);
+    expect(usersService.findAll).toHaveBeenCalledWith(
+      1,
+      10,
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
   it('rejects users limit greater than 50', async () => {
@@ -355,7 +361,7 @@ describe('Application e2e', () => {
       .set('Authorization', 'Bearer admin-token')
       .expect(200);
 
-    expect(rolesService.findAll).toHaveBeenCalledWith(2, 20);
+    expect(rolesService.findAll).toHaveBeenCalledWith(2, 20, undefined);
   });
 
   it('rejects roles query parameters above max limit', async () => {
@@ -374,7 +380,12 @@ describe('Application e2e', () => {
       .set('Authorization', 'Bearer admin-token')
       .expect(200);
 
-    expect(permissionsService.findAll).toHaveBeenCalledWith(3, 5, 'user');
+    expect(permissionsService.findAll).toHaveBeenCalledWith(
+      3,
+      5,
+      'user',
+      undefined,
+    );
   });
 
   it('rejects unknown permissions query parameters', async () => {

@@ -1,13 +1,27 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class QueryPermissionsDto {
+  @ApiPropertyOptional({
+    description: '页码',
+    example: 1,
+    default: 1,
+    minimum: 1,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   page: number = 1;
 
+  @ApiPropertyOptional({
+    description: '每页数量，最大 50',
+    example: 10,
+    default: 10,
+    minimum: 1,
+    maximum: 50,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -15,10 +29,18 @@ export class QueryPermissionsDto {
   @Max(50)
   limit: number = 10;
 
+  @ApiPropertyOptional({
+    description: '按权限分组筛选',
+    example: 'users',
+  })
   @IsOptional()
   @IsString()
   group?: string;
 
+  @ApiPropertyOptional({
+    description: '按权限关键字搜索，前后空白会被自动去除',
+    example: 'create',
+  })
   @IsOptional()
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim() || undefined : value,
