@@ -1,8 +1,14 @@
+import 'reflect-metadata';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { AccessGuard } from '../auth/access.guard';
+import {
+  REQUIRED_PERMISSIONS_KEY,
+  REQUIRED_ROLES_KEY,
+} from '../auth/access.decorator';
+import { PERMISSION_KEYS } from '../auth/permission-keys';
 import { PermissionsService } from '../permissions/permissions.service';
 
 describe('UsersController', () => {
@@ -52,5 +58,19 @@ describe('UsersController', () => {
     });
 
     expect(usersService.findAll).toHaveBeenCalledWith(1, 20, undefined, 2, 'test');
+  });
+
+  it('uses permission metadata for read and write endpoints', () => {
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.findAll)).toEqual([PERMISSION_KEYS.user.read]);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.findOne)).toEqual([PERMISSION_KEYS.user.read]);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.create)).toEqual([PERMISSION_KEYS.user.write]);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.update)).toEqual([PERMISSION_KEYS.user.write]);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.updateStatus)).toEqual([PERMISSION_KEYS.user.updateStatus]);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.remove)).toEqual([PERMISSION_KEYS.user.delete]);
+  });
+
+  it('keeps user role assignment as SuperAdmin-only', () => {
+    expect(Reflect.getMetadata(REQUIRED_ROLES_KEY, UsersController.prototype.assignRoles)).toEqual(['SuperAdmin']);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, UsersController.prototype.assignRoles)).toBeUndefined();
   });
 });

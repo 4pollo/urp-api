@@ -28,7 +28,14 @@ import { AssignRolesDto } from './dto/assign-roles.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccessGuard } from '../auth/access.guard';
-import { RequireRoles } from '../auth/access.decorator';
+import {
+  RequirePermissions,
+  RequireRoles,
+} from '../auth/access.decorator';
+import {
+  SUPER_ADMIN_ROLE,
+  USER_PERMISSION_POLICIES,
+} from '../auth/permission-policies';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -41,6 +48,8 @@ export class UsersController {
   @ApiOperation({ summary: '分页查询用户列表' })
   @ApiBadRequestResponse({ description: '查询参数校验失败。' })
   @Get()
+  @UseGuards(AccessGuard)
+  @RequirePermissions(...USER_PERMISSION_POLICIES.read)
   async findAll(@Query() query: QueryUsersDto) {
     return this.usersService.findAll(
       query.page,
@@ -54,6 +63,8 @@ export class UsersController {
   @ApiOperation({ summary: '获取单个用户详情' })
   @ApiNotFoundResponse({ description: '用户不存在。' })
   @Get(':id')
+  @UseGuards(AccessGuard)
+  @RequirePermissions(...USER_PERMISSION_POLICIES.read)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
@@ -63,7 +74,7 @@ export class UsersController {
   @ApiForbiddenResponse({ description: '需要 SuperAdmin 角色。' })
   @Post()
   @UseGuards(AccessGuard)
-  @RequireRoles('SuperAdmin')
+  @RequirePermissions(...USER_PERMISSION_POLICIES.create)
   async create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -72,6 +83,8 @@ export class UsersController {
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
   @ApiNotFoundResponse({ description: '用户不存在。' })
   @Put(':id')
+  @UseGuards(AccessGuard)
+  @RequirePermissions(...USER_PERMISSION_POLICIES.update)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -84,7 +97,7 @@ export class UsersController {
   @ApiNotFoundResponse({ description: '用户不存在。' })
   @Delete(':id')
   @UseGuards(AccessGuard)
-  @RequireRoles('SuperAdmin')
+  @RequirePermissions(...USER_PERMISSION_POLICIES.delete)
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }
@@ -95,7 +108,7 @@ export class UsersController {
   @ApiNotFoundResponse({ description: '用户不存在。' })
   @Patch(':id/status')
   @UseGuards(AccessGuard)
-  @RequireRoles('SuperAdmin')
+  @RequirePermissions(...USER_PERMISSION_POLICIES.updateStatus)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserStatusDto: UpdateUserStatusDto,
@@ -109,7 +122,7 @@ export class UsersController {
   @ApiNotFoundResponse({ description: '用户或角色不存在。' })
   @Put(':id/roles')
   @UseGuards(AccessGuard)
-  @RequireRoles('SuperAdmin')
+  @RequireRoles(...USER_PERMISSION_POLICIES.assignRoles)
   async assignRoles(
     @Param('id', ParseIntPipe) id: number,
     @Body() assignRolesDto: AssignRolesDto,

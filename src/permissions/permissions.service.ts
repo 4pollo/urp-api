@@ -12,6 +12,7 @@ import { Role } from '../roles/entities/role.entity';
 import { RolePermission } from '../roles/entities/role-permission.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { SYSTEM_PERMISSION_KEYS } from '../auth/permission-keys';
 
 @Injectable()
 export class PermissionsService {
@@ -189,17 +190,6 @@ export class PermissionsService {
   }
 
   private isSystemPermission(permissionKey: string) {
-    return [
-      'user:read',
-      'user:write',
-      'user:delete',
-      'role:read',
-      'role:write',
-      'role:delete',
-      'permission:read',
-      'permission:write',
-      'permission:delete',
-      'system:manage',
-    ].includes(permissionKey);
+    return SYSTEM_PERMISSION_KEYS.includes(permissionKey as (typeof SYSTEM_PERMISSION_KEYS)[number]);
   }
 }

@@ -26,21 +26,27 @@ import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { QueryRolesDto } from './dto/query-roles.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccessGuard } from '../auth/access.guard';
-import { RequireRoles } from '../auth/access.decorator';
+import {
+  RequirePermissions,
+  RequireRoles,
+} from '../auth/access.decorator';
+import {
+  ROLE_PERMISSION_POLICIES,
+} from '../auth/permission-policies';
 
 @ApiTags('Roles')
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: '未提供或提供了无效的 JWT。' })
-@ApiForbiddenResponse({ description: '需要 SuperAdmin 角色。' })
+@ApiForbiddenResponse({ description: '需要对应权限或 SuperAdmin 角色。' })
 @Controller('api/roles')
 @UseGuards(JwtAuthGuard, AccessGuard)
-@RequireRoles('SuperAdmin')
 export class RolesController {
   constructor(private rolesService: RolesService) {}
 
   @ApiOperation({ summary: '分页查询角色列表' })
   @ApiBadRequestResponse({ description: '查询参数校验失败。' })
   @Get()
+  @RequirePermissions(...ROLE_PERMISSION_POLICIES.read)
   async findAll(@Query() query: QueryRolesDto) {
     return this.rolesService.findAll(query.page, query.limit, query.search);
   }
@@ -48,6 +54,7 @@ export class RolesController {
   @ApiOperation({ summary: '获取单个角色详情' })
   @ApiNotFoundResponse({ description: '角色不存在。' })
   @Get(':id')
+  @RequirePermissions(...ROLE_PERMISSION_POLICIES.read)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.findOne(id);
   }
@@ -55,6 +62,7 @@ export class RolesController {
   @ApiOperation({ summary: '创建角色' })
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
   @Post()
+  @RequirePermissions(...ROLE_PERMISSION_POLICIES.create)
   async create(@Body() createRoleDto: CreateRoleDto) {
     return this.rolesService.create(createRoleDto);
   }
@@ -63,6 +71,7 @@ export class RolesController {
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
   @ApiNotFoundResponse({ description: '角色不存在。' })
   @Put(':id')
+  @RequirePermissions(...ROLE_PERMISSION_POLICIES.update)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRoleDto: UpdateRoleDto,
@@ -73,6 +82,7 @@ export class RolesController {
   @ApiOperation({ summary: '删除角色' })
   @ApiNotFoundResponse({ description: '角色不存在。' })
   @Delete(':id')
+  @RequirePermissions(...ROLE_PERMISSION_POLICIES.delete)
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.rolesService.remove(id);
   }
@@ -81,6 +91,7 @@ export class RolesController {
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
   @ApiNotFoundResponse({ description: '角色或权限不存在。' })
   @Put(':id/permissions')
+  @RequireRoles(...ROLE_PERMISSION_POLICIES.assignPermissions)
   async assignPermissions(
     @Param('id', ParseIntPipe) id: number,
     @Body() assignPermissionsDto: AssignPermissionsDto,

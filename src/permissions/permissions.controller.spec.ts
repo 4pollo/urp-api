@@ -1,5 +1,11 @@
+import 'reflect-metadata';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PermissionsController } from './permissions.controller';
+import {
+  REQUIRED_PERMISSIONS_KEY,
+  REQUIRED_ROLES_KEY,
+} from '../auth/access.decorator';
+import { PERMISSION_KEYS } from '../auth/permission-keys';
 import { PermissionsService } from './permissions.service';
 
 describe('PermissionsController', () => {
@@ -39,5 +45,19 @@ describe('PermissionsController', () => {
     });
 
     expect(permissionsService.findAll).toHaveBeenCalledWith(1, 20, 'user', 'write');
+  });
+
+  it('uses permission metadata for permission read endpoints', () => {
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.findAll)).toEqual([PERMISSION_KEYS.permission.read]);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.findOne)).toEqual([PERMISSION_KEYS.permission.read]);
+  });
+
+  it('keeps permission definition mutation as SuperAdmin-only', () => {
+    expect(Reflect.getMetadata(REQUIRED_ROLES_KEY, PermissionsController.prototype.create)).toEqual(['SuperAdmin']);
+    expect(Reflect.getMetadata(REQUIRED_ROLES_KEY, PermissionsController.prototype.update)).toEqual(['SuperAdmin']);
+    expect(Reflect.getMetadata(REQUIRED_ROLES_KEY, PermissionsController.prototype.remove)).toEqual(['SuperAdmin']);
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.create)).toBeUndefined();
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.update)).toBeUndefined();
+    expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.remove)).toBeUndefined();
   });
 });

@@ -112,4 +112,36 @@ describe('AccessGuard', () => {
       true,
     );
   });
+
+  it('allows users when both required role and permission are satisfied', async () => {
+    reflector.getAllAndOverride.mockImplementation((key: string) => {
+      if (key === REQUIRED_ROLES_KEY) return ['Manager'];
+      if (key === REQUIRED_PERMISSIONS_KEY) return ['role:write'];
+      return [];
+    });
+    permissionsService.getUserPermissions.mockResolvedValue({
+      roles: ['Manager'],
+      permissions: ['role:read', 'role:write'],
+    });
+
+    await expect(guard.canActivate(createContext({ userId: 1 }))).resolves.toBe(
+      true,
+    );
+  });
+
+  it('rejects users when required role is missing even if permission matches', async () => {
+    reflector.getAllAndOverride.mockImplementation((key: string) => {
+      if (key === REQUIRED_ROLES_KEY) return ['SuperAdmin'];
+      if (key === REQUIRED_PERMISSIONS_KEY) return ['role:write'];
+      return [];
+    });
+    permissionsService.getUserPermissions.mockResolvedValue({
+      roles: ['Manager'],
+      permissions: ['role:write'],
+    });
+
+    await expect(guard.canActivate(createContext({ userId: 1 }))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
 });

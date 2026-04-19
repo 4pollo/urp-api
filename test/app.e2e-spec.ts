@@ -43,6 +43,7 @@ describe('Application e2e', () => {
   let permissionsService: {
     findAll: jest.Mock;
     checkPermission: jest.Mock;
+    getUserPermissions: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -122,6 +123,29 @@ describe('Application e2e', () => {
         group,
       })),
       checkPermission: jest.fn(async () => ({ allowed: true })),
+      getUserPermissions: jest.fn(async (userId: number) => {
+        if (userId === 2) {
+          return {
+            roles: ['SuperAdmin'],
+            permissions: [
+              'user:read',
+              'user:write',
+              'user:delete',
+              'role:read',
+              'role:write',
+              'role:delete',
+              'permission:read',
+              'permission:write',
+              'permission:delete',
+            ],
+          };
+        }
+
+        return {
+          roles: ['Guest'],
+          permissions: ['user:read', 'role:read', 'permission:read'],
+        };
+      }),
     };
 
     const fakeJwtGuard = {
@@ -153,14 +177,45 @@ describe('Application e2e', () => {
     };
 
     const fakeAccessGuard = {
-      canActivate(context: ExecutionContext) {
+      async canActivate(context: ExecutionContext) {
         const request = context.switchToHttp().getRequest<{ user?: { userId: number } }>();
+        const handler = context.getHandler();
+        const controller = context.getClass();
+        const userId = request.user?.userId;
 
-        if (request.user?.userId === 2) {
+        if (!userId) {
+          throw new ForbiddenException('Access denied');
+        }
+
+        const requiredRoles = Reflect.getMetadata('required_roles', handler)
+          || Reflect.getMetadata('required_roles', controller)
+          || [];
+        const requiredPermissions = Reflect.getMetadata('required_permissions', handler)
+          || Reflect.getMetadata('required_permissions', controller)
+          || [];
+
+        if (requiredRoles.length === 0 && requiredPermissions.length === 0) {
           return true;
         }
 
-        throw new ForbiddenException('Insufficient role');
+        const { roles, permissions } = await permissionsService.getUserPermissions(userId);
+
+        if (roles.includes('SuperAdmin')) {
+          return true;
+        }
+
+        if (requiredRoles.length > 0 && !requiredRoles.some((role: string) => roles.includes(role))) {
+          throw new ForbiddenException('Insufficient role');
+        }
+
+        if (
+          requiredPermissions.length > 0 &&
+          !requiredPermissions.some((permission: string) => permissions.includes(permission))
+        ) {
+          throw new ForbiddenException('Insufficient permission');
+        }
+
+        return true;
       },
     };
 
@@ -292,11 +347,40 @@ describe('Application e2e', () => {
     expect(authService.logout).toHaveBeenCalledWith(1);
   });
 
-  it('blocks non-SuperAdmin users from admin-only endpoints', async () => {
+  it('allows non-SuperAdmin users to access permission-based read endpoints', async () => {
+    await request(app.getHttpServer())
+      .get('/api/users')
+      .set('Authorization', 'Bearer user-token')
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/roles')
+      .set('Authorization', 'Bearer user-token')
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/permissions')
+      .set('Authorization', 'Bearer user-token')
+      .expect(200);
+  });
+
+  it('blocks non-SuperAdmin users from write endpoints without matching permissions', async () => {
     await request(app.getHttpServer())
       .post('/api/users')
       .set('Authorization', 'Bearer user-token')
       .send({ email: 'created@example.com', password: 'password123' })
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body.code).toBe(4006);
+        expect(body.message).toBe('Insufficient permission');
+      });
+  });
+
+  it('blocks non-SuperAdmin users from protected SuperAdmin-only endpoints', async () => {
+    await request(app.getHttpServer())
+      .put('/api/users/1/roles')
+      .set('Authorization', 'Bearer user-token')
+      .send({ roleIds: [1] })
       .expect(403)
       .expect(({ body }) => {
         expect(body.code).toBe(4006);
