@@ -56,6 +56,7 @@ async function main() {
     { key: 'user:read', group: 'user', description: '查看用户' },
     { key: 'user:write', group: 'user', description: '编辑用户' },
     { key: 'user:delete', group: 'user', description: '删除用户' },
+    { key: 'user:update-status', group: 'user', description: '更新用户状态' },
     { key: 'role:read', group: 'role', description: '查看角色' },
     { key: 'role:write', group: 'role', description: '编辑角色' },
     { key: 'role:delete', group: 'role', description: '删除角色' },
@@ -71,7 +72,7 @@ async function main() {
       await permRepo.save(permRepo.create(pData));
     }
   }
-  console.log('Ensured 10 base permissions exist');
+  console.log('Ensured 11 base permissions exist');
 
   // Assign all permissions to SuperAdmin
   const allPermissions = await permRepo.find();
