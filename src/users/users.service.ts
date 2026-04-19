@@ -197,11 +197,32 @@ export class UsersService {
     return { message: 'User deleted successfully' };
   }
 
-  async updateStatus(id: number, updateUserStatusDto: UpdateUserStatusDto) {
-    const user = await this.userRepo.findOne({ where: { id } });
+  async updateStatus(
+    id: number,
+    updateUserStatusDto: UpdateUserStatusDto,
+    currentUserId?: number,
+  ) {
+    const user = await this.userRepo.findOne({
+      where: { id },
+      relations: {
+        roles: {
+          role: true,
+        },
+      },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // 防止 SuperAdmin 冻结自己
+    if (currentUserId && currentUserId === id) {
+      const isSuperAdmin = user.roles.some(
+        (userRole) => userRole.role.name === 'SuperAdmin',
+      );
+      if (isSuperAdmin && updateUserStatusDto.status === UserStatus.FROZEN) {
+        throw new BadRequestException('SuperAdmin cannot freeze themselves');
+      }
     }
 
     await this.userRepo.update(id, {

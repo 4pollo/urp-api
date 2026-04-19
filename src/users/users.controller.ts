@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  Request,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -112,8 +113,9 @@ export class UsersController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserStatusDto: UpdateUserStatusDto,
+    @Request() req: { user: { userId: number } },
   ) {
-    return this.usersService.updateStatus(id, updateUserStatusDto);
+    return this.usersService.updateStatus(id, updateUserStatusDto, req.user.userId);
   }
 
   @ApiOperation({ summary: '为用户分配角色' })
