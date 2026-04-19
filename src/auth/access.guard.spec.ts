@@ -11,14 +11,20 @@ describe('AccessGuard', () => {
   let reflector: { getAllAndOverride: jest.Mock };
   let permissionsService: { getUserPermissions: jest.Mock };
 
-  const createContext = (user?: { userId: number }) =>
-    ({
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
-      switchToHttp: () => ({
-        getRequest: () => ({ user }),
-      }),
-    }) as never;
+  const createContext = (user?: { userId: number }) => {
+    const request = { user };
+
+    return {
+      request,
+      context: {
+        getHandler: jest.fn(),
+        getClass: jest.fn(),
+        switchToHttp: () => ({
+          getRequest: () => request,
+        }),
+      } as never,
+    };
+  };
 
   beforeEach(() => {
     reflector = {
@@ -35,7 +41,7 @@ describe('AccessGuard', () => {
   });
 
   it('allows access when no role or permission metadata is present', async () => {
-    await expect(guard.canActivate(createContext({ userId: 1 }))).resolves.toBe(
+    await expect(guard.canActivate(createContext({ userId: 1 }).context)).resolves.toBe(
       true,
     );
     expect(permissionsService.getUserPermissions).not.toHaveBeenCalled();
@@ -47,7 +53,7 @@ describe('AccessGuard', () => {
       return [];
     });
 
-    await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
+    await expect(guard.canActivate(createContext().context)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
@@ -62,10 +68,10 @@ describe('AccessGuard', () => {
       roles: ['SuperAdmin'],
       permissions: [],
     });
+    const { context, request } = createContext({ userId: 1 });
 
-    await expect(guard.canActivate(createContext({ userId: 1 }))).resolves.toBe(
-      true,
-    );
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(permissionsService.getUserPermissions).toHaveBeenCalledWith(1, request);
   });
 
   it('rejects users without the required role', async () => {
@@ -78,7 +84,7 @@ describe('AccessGuard', () => {
       permissions: ['user:read'],
     });
 
-    await expect(guard.canActivate(createContext({ userId: 1 }))).rejects.toBeInstanceOf(
+    await expect(guard.canActivate(createContext({ userId: 1 }).context)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
@@ -93,7 +99,7 @@ describe('AccessGuard', () => {
       permissions: ['user:read'],
     });
 
-    await expect(guard.canActivate(createContext({ userId: 1 }))).rejects.toBeInstanceOf(
+    await expect(guard.canActivate(createContext({ userId: 1 }).context)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
@@ -108,7 +114,7 @@ describe('AccessGuard', () => {
       permissions: ['user:read', 'user:write'],
     });
 
-    await expect(guard.canActivate(createContext({ userId: 1 }))).resolves.toBe(
+    await expect(guard.canActivate(createContext({ userId: 1 }).context)).resolves.toBe(
       true,
     );
   });
@@ -124,7 +130,7 @@ describe('AccessGuard', () => {
       permissions: ['role:read', 'role:write'],
     });
 
-    await expect(guard.canActivate(createContext({ userId: 1 }))).resolves.toBe(
+    await expect(guard.canActivate(createContext({ userId: 1 }).context)).resolves.toBe(
       true,
     );
   });
@@ -140,7 +146,7 @@ describe('AccessGuard', () => {
       permissions: ['role:write'],
     });
 
-    await expect(guard.canActivate(createContext({ userId: 1 }))).rejects.toBeInstanceOf(
+    await expect(guard.canActivate(createContext({ userId: 1 }).context)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });

@@ -197,4 +197,25 @@ describe('PermissionsService', () => {
       roles: ['Editor', 'Auditor'],
     });
   });
+
+  it('reuses user permissions from request cache when available', async () => {
+    userRoleRepo.find.mockResolvedValue([
+      {
+        role: {
+          name: 'Editor',
+          permissions: [{ permission: { key: 'user:read' } }],
+        },
+      },
+    ]);
+    const request = {} as {
+      __userPermissionsCache?: Map<number, { permissions: string[]; roles: string[] }>;
+    };
+
+    const first = await service.getUserPermissions(1, request);
+    const second = await service.getUserPermissions(1, request);
+
+    expect(first).toEqual({ permissions: ['user:read'], roles: ['Editor'] });
+    expect(second).toEqual(first);
+    expect(userRoleRepo.find).toHaveBeenCalledTimes(1);
+  });
 });

@@ -36,6 +36,10 @@ export class AccessGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<{
       user?: { userId: number };
+      __userPermissionsCache?: Map<
+        number,
+        { permissions: string[]; roles: string[] }
+      >;
     }>();
     const userId = request.user?.userId;
 
@@ -44,7 +48,7 @@ export class AccessGuard implements CanActivate {
     }
 
     const { roles, permissions } =
-      await this.permissionsService.getUserPermissions(userId);
+      await this.permissionsService.getUserPermissions(userId, request);
 
     if (roles.includes('SuperAdmin')) {
       return true;

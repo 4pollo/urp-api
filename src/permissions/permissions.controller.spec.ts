@@ -10,11 +10,15 @@ import { PermissionsService } from './permissions.service';
 
 describe('PermissionsController', () => {
   let controller: PermissionsController;
-  let permissionsService: { findAll: jest.Mock };
+  let permissionsService: {
+    findAll: jest.Mock;
+    getUserPermissions: jest.Mock;
+  };
 
   beforeEach(async () => {
     permissionsService = {
       findAll: jest.fn(),
+      getUserPermissions: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -50,6 +54,21 @@ describe('PermissionsController', () => {
   it('uses permission metadata for permission read endpoints', () => {
     expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.findAll)).toEqual([PERMISSION_KEYS.permission.read]);
     expect(Reflect.getMetadata(REQUIRED_PERMISSIONS_KEY, PermissionsController.prototype.findOne)).toEqual([PERMISSION_KEYS.permission.read]);
+  });
+
+  it('forwards current request to getUserPermissions', async () => {
+    const req = { user: { userId: 7 } } as {
+      user: { userId: number };
+      __userPermissionsCache?: Map<number, { permissions: string[]; roles: string[] }>;
+    };
+    permissionsService.getUserPermissions.mockResolvedValue({
+      permissions: ['user:read'],
+      roles: ['Editor'],
+    });
+
+    await controller.getUserPermissions(req);
+
+    expect(permissionsService.getUserPermissions).toHaveBeenCalledWith(7, req);
   });
 
   it('keeps permission definition mutation as SuperAdmin-only', () => {

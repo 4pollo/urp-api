@@ -14,6 +14,15 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { SYSTEM_PERMISSION_KEYS } from '../auth/permission-keys';
 
+type UserPermissionSnapshot = {
+  permissions: string[];
+  roles: string[];
+};
+
+type PermissionCacheRequest = {
+  __userPermissionsCache?: Map<number, UserPermissionSnapshot>;
+};
+
 @Injectable()
 export class PermissionsService {
   constructor(
@@ -161,7 +170,12 @@ export class PermissionsService {
     };
   }
 
-  async getUserPermissions(userId: number) {
+  async getUserPermissions(userId: number, request?: PermissionCacheRequest) {
+    const cached = request?.__userPermissionsCache?.get(userId);
+    if (cached) {
+      return cached;
+    }
+
     const userRoles = await this.userRoleRepo.find({
       where: { userId },
       relations: {
@@ -183,10 +197,19 @@ export class PermissionsService {
       }
     }
 
-    return {
+    const result = {
       permissions: Array.from(permissions),
       roles: Array.from(roles),
     };
+
+    if (request) {
+      if (!request.__userPermissionsCache) {
+        request.__userPermissionsCache = new Map<number, UserPermissionSnapshot>();
+      }
+      request.__userPermissionsCache.set(userId, result);
+    }
+
+    return result;
   }
 
   private isSystemPermission(permissionKey: string) {

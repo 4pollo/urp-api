@@ -60,8 +60,14 @@ export class PermissionsController {
 
   @ApiOperation({ summary: '获取当前用户权限列表' })
   @Get('permissions/me')
-  async getUserPermissions(@Request() req: { user: { userId: number } }) {
-    return this.permissionsService.getUserPermissions(req.user.userId);
+  async getUserPermissions(
+    @Request()
+    req: {
+      user: { userId: number };
+      __userPermissionsCache?: Map<number, { permissions: string[]; roles: string[] }>;
+    },
+  ) {
+    return this.permissionsService.getUserPermissions(req.user.userId, req);
   }
 
   @ApiOperation({ summary: '获取单个权限详情' })
