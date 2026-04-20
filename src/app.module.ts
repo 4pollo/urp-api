@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { User } from './users/entities/user.entity';
@@ -30,6 +31,8 @@ import { PermissionsModule } from './permissions/permissions.module';
         database: configService.get('DB_DATABASE'),
         entities: [User, UserRole, Role, RolePermission, Permission],
         synchronize: process.env.NODE_ENV !== 'production',
+        // logging: process.env.NODE_ENV !== 'production',
+        namingStrategy: new SnakeNamingStrategy(),
       }),
       inject: [ConfigService],
     }),

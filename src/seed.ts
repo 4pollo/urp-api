@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import * as bcrypt from 'bcrypt';
 import { User } from './users/entities/user.entity';
 import { UserRole } from './users/entities/user-role.entity';
@@ -18,6 +19,7 @@ async function main() {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
     entities: [User, UserRole, Role, RolePermission, Permission],
+    namingStrategy: new SnakeNamingStrategy(),
   });
 
   await dataSource.initialize();

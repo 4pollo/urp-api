@@ -8,11 +8,12 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
 
   const publicPath = join(__dirname, '..', 'public');
   app.useStaticAssets(publicPath);
-  console.log('Serving static files from:', publicPath);
 
   // 全局验证管道
   app.useGlobalPipes(
@@ -47,6 +48,7 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, swaggerDocument);
 
   await app.listen(process.env.PORT ?? 3000);
+  console.log('Serving static files from:', publicPath);
   console.log(
     `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
   );

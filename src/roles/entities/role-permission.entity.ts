@@ -17,11 +17,11 @@ export class RolePermission {
   permissionId: number;
 
   @ManyToOne(() => Role, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'roleId' })
+  @JoinColumn({ name: 'role_id' })
   role: Role;
 
   @ManyToOne(() => Permission, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'permissionId' })
+  @JoinColumn({ name: 'permission_id' })
   permission: Permission;
 
   @CreateDateColumn({ type: 'datetime' })
