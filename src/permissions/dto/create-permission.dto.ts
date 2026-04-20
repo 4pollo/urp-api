@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsInt } from 'class-validator';
 
 export class CreatePermissionDto {
   @ApiProperty({ example: 'users:create', description: '权限标识' })
@@ -14,4 +14,29 @@ export class CreatePermissionDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: true, description: '是否显示在菜单' })
+  @IsOptional()
+  @IsBoolean()
+  showInMenu?: boolean;
+
+  @ApiPropertyOptional({ example: '用户管理', description: '菜单显示文本' })
+  @IsOptional()
+  @IsString()
+  menuLabel?: string;
+
+  @ApiPropertyOptional({ example: 'users', description: '菜单图标标识' })
+  @IsOptional()
+  @IsString()
+  menuIcon?: string;
+
+  @ApiPropertyOptional({ example: '/admin/users', description: '菜单路由路径' })
+  @IsOptional()
+  @IsString()
+  menuPath?: string;
+
+  @ApiPropertyOptional({ example: 1, description: '菜单排序' })
+  @IsOptional()
+  @IsInt()
+  menuOrder?: number;
 }

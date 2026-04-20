@@ -70,6 +70,12 @@ export class PermissionsController {
     return this.permissionsService.getUserPermissions(req.user.userId, req);
   }
 
+  @ApiOperation({ summary: '获取当前用户可访问的菜单项' })
+  @Get('permissions/menu')
+  async getMenuItems(@Request() req: { user: { userId: number } }) {
+    return this.permissionsService.getMenuItems(req.user.userId);
+  }
+
   @ApiOperation({ summary: '获取单个权限详情' })
   @ApiForbiddenResponse({ description: '需要 permission:read 权限或 SuperAdmin 角色。' })
   @ApiNotFoundResponse({ description: '权限不存在。' })

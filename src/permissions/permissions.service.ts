@@ -109,8 +109,22 @@ export class PermissionsService {
       throw new NotFoundException('Permission not found');
     }
 
+    // 系统权限只允许修改菜单配置，不允许修改核心字段
     if (this.isSystemPermission(permission.key)) {
-      throw new BadRequestException('System permissions cannot be modified');
+      const { key, group, description, ...menuFields } = updatePermissionDto;
+
+      // 如果尝试修改核心字段，拒绝
+      if (key !== undefined || group !== undefined || description !== undefined) {
+        throw new BadRequestException('System permissions core fields cannot be modified');
+      }
+
+      // 只更新菜单配置字段
+      await this.permissionRepo.update(id, menuFields);
+
+      return {
+        ...permission,
+        ...menuFields,
+      };
     }
 
     if (updatePermissionDto.key && updatePermissionDto.key !== permission.key) {
@@ -210,6 +224,61 @@ export class PermissionsService {
     }
 
     return result;
+  }
+
+  async getMenuItems(userId: number) {
+    const userRoles = await this.userRoleRepo.find({
+      where: { userId },
+      relations: {
+        role: {
+          permissions: {
+            permission: true,
+          },
+        },
+      },
+    });
+
+    const isSuperAdmin = userRoles.some((ur) => ur.role.name === 'SuperAdmin');
+
+    let menuPermissions: Permission[];
+
+    if (isSuperAdmin) {
+      // SuperAdmin sees all menu items
+      menuPermissions = await this.permissionRepo.find({
+        where: { showInMenu: true },
+        order: { menuOrder: 'ASC', id: 'ASC' },
+      });
+    } else {
+      // Regular users see only their permitted menu items
+      const permissionIds = new Set<number>();
+      for (const userRole of userRoles) {
+        for (const rolePermission of userRole.role.permissions) {
+          permissionIds.add(rolePermission.permission.id);
+        }
+      }
+
+      if (permissionIds.size === 0) {
+        return { items: [] };
+      }
+
+      menuPermissions = await this.permissionRepo.find({
+        where: { showInMenu: true },
+        order: { menuOrder: 'ASC', id: 'ASC' },
+      });
+
+      menuPermissions = menuPermissions.filter((p) => permissionIds.has(p.id));
+    }
+
+    return {
+      items: menuPermissions.map((p) => ({
+        id: p.id,
+        key: p.key,
+        menuLabel: p.menuLabel || p.description || p.key,
+        menuIcon: p.menuIcon || 'circle',
+        menuPath: p.menuPath || '/',
+        menuOrder: p.menuOrder,
+      })),
+    };
   }
 
   private isSystemPermission(permissionKey: string) {

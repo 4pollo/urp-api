@@ -21,6 +21,21 @@ export class Permission {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  showInMenu: boolean;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  menuLabel: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  menuIcon: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  menuPath: string | null;
+
+  @Column({ type: 'int', default: 0 })
+  menuOrder: number;
+
   @CreateDateColumn({ type: 'datetime' })
   createdAt: Date;
 

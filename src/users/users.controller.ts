@@ -99,8 +99,11 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(AccessGuard)
   @RequirePermissions(...USER_PERMISSION_POLICIES.delete)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { userId: number } },
+  ) {
+    return this.usersService.remove(id, req.user.userId);
   }
 
   @ApiOperation({ summary: '更新用户状态' })

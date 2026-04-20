@@ -185,11 +185,28 @@ export class UsersService {
     };
   }
 
-  async remove(id: number) {
-    const user = await this.userRepo.findOne({ where: { id } });
+  async remove(id: number, currentUserId?: number) {
+    const user = await this.userRepo.findOne({
+      where: { id },
+      relations: {
+        roles: {
+          role: true,
+        },
+      },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // 防止 SuperAdmin 删除自己
+    if (currentUserId && currentUserId === id) {
+      const isSuperAdmin = user.roles.some(
+        (userRole) => userRole.role.name === 'SuperAdmin',
+      );
+      if (isSuperAdmin) {
+        throw new BadRequestException('SuperAdmin cannot delete themselves');
+      }
     }
 
     await this.userRepo.delete(id);

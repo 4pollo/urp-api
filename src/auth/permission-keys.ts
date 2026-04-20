@@ -24,6 +24,7 @@ export const SYSTEM_PERMISSION_KEYS = [
   PERMISSION_KEYS.user.read,
   PERMISSION_KEYS.user.write,
   PERMISSION_KEYS.user.delete,
+  PERMISSION_KEYS.user.updateStatus,
   PERMISSION_KEYS.role.read,
   PERMISSION_KEYS.role.write,
   PERMISSION_KEYS.role.delete,
