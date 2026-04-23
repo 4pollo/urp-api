@@ -11,6 +11,7 @@ import {
   REQUIRED_ROLES_KEY,
 } from './access.decorator';
 import { SYSTEM_ROLES } from './system-roles';
+import { AuthenticatedRequest } from './auth-request.interface';
 
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -35,13 +36,9 @@ export class AccessGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<{
-      user?: { userId: number };
-      __userPermissionsCache?: Map<
-        number,
-        { permissions: string[]; roles: string[] }
-      >;
-    }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<AuthenticatedRequest>();
     const userId = request.user?.userId;
 
     if (!userId) {

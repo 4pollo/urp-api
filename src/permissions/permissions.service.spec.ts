@@ -261,6 +261,30 @@ describe('PermissionsService', () => {
     });
   });
 
+  it('checkPermission reuses request-level cache and avoids extra db call', async () => {
+    userRoleRepo.find.mockResolvedValue([
+      {
+        role: {
+          name: 'Editor',
+          permissions: [{ permission: { key: 'user:read' } }],
+        },
+      },
+    ]);
+    const request = {} as {
+      __userPermissionsCache?: Map<number, { permissions: string[]; roles: string[] }>;
+    };
+
+    await service.getUserPermissions(1, request);
+    await expect(
+      service.checkPermission(1, 'user:read', request),
+    ).resolves.toEqual({ allowed: true });
+    await expect(
+      service.checkPermission(1, 'user:write', request),
+    ).resolves.toEqual({ allowed: false });
+
+    expect(userRoleRepo.find).toHaveBeenCalledTimes(1);
+  });
+
   it('aggregates unique roles and permissions for a user', async () => {
     userRoleRepo.find.mockResolvedValue([
       {

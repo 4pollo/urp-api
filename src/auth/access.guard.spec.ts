@@ -37,7 +37,7 @@ describe('AccessGuard', () => {
     permissionsService = {
       getUserPermissions: jest.fn(),
     };
-    guard = new AccessGuard(reflector as Reflector, permissionsService as never);
+    guard = new AccessGuard(reflector as unknown as Reflector, permissionsService as never);
   });
 
   it('allows access when no role or permission metadata is present', async () => {

@@ -31,7 +31,7 @@ describe('AuthController', () => {
   it('forwards current user id on logout', async () => {
     authService.logout.mockResolvedValue({ message: 'Logged out successfully' });
 
-    await controller.logout({ user: { userId: 1 } });
+    await controller.logout({ user: { userId: 1, email: 'a@b.com' } } as never);
 
     expect(authService.logout).toHaveBeenCalledWith(1);
   });

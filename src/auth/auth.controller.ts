@@ -19,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import type { AuthenticatedRequest } from './auth-request.interface';
 
 @ApiTags('Auth')
 @Controller('api/auth')
@@ -53,7 +54,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: '未提供或提供了无效的 JWT。' })
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req: { user: { userId: number } }) {
+  async logout(@Request() req: AuthenticatedRequest) {
     return this.authService.logout(req.user.userId);
   }
 
@@ -64,7 +65,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
-    @Request() req: { user: { userId: number } },
+    @Request() req: AuthenticatedRequest,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(req.user.userId, changePasswordDto);
@@ -75,7 +76,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: '未提供或提供了无效的 JWT。' })
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMe(@Request() req: { user: { userId: number } }) {
+  async getMe(@Request() req: AuthenticatedRequest) {
     return this.authService.getMe(req.user.userId);
   }
 }

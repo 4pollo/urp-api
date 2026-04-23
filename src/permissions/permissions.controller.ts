@@ -34,6 +34,7 @@ import {
 import {
   PERMISSION_DEFINITION_POLICIES,
 } from '../auth/permission-policies';
+import type { AuthenticatedRequest } from '../auth/auth-request.interface';
 
 @ApiTags('Permissions')
 @ApiBearerAuth()
@@ -60,19 +61,13 @@ export class PermissionsController {
 
   @ApiOperation({ summary: '获取当前用户权限列表' })
   @Get('permissions/me')
-  async getUserPermissions(
-    @Request()
-    req: {
-      user: { userId: number };
-      __userPermissionsCache?: Map<number, { permissions: string[]; roles: string[] }>;
-    },
-  ) {
+  async getUserPermissions(@Request() req: AuthenticatedRequest) {
     return this.permissionsService.getUserPermissions(req.user.userId, req);
   }
 
   @ApiOperation({ summary: '获取当前用户可访问的菜单项' })
   @Get('permissions/menu')
-  async getMenuItems(@Request() req: { user: { userId: number } }) {
+  async getMenuItems(@Request() req: AuthenticatedRequest) {
     return this.permissionsService.getMenuItems(req.user.userId);
   }
 
@@ -124,12 +119,13 @@ export class PermissionsController {
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
   @Post('check')
   async checkPermission(
-    @Request() req: { user: { userId: number } },
+    @Request() req: AuthenticatedRequest,
     @Body() checkPermissionDto: CheckPermissionDto,
   ) {
     return this.permissionsService.checkPermission(
       req.user.userId,
       checkPermissionDto.permission,
+      req,
     );
   }
 }

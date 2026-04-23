@@ -15,14 +15,13 @@ import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { validateMenuConfig } from './dto/menu-config.validator';
 import { SYSTEM_PERMISSION_KEYS } from '../auth/permission-keys';
 import { SYSTEM_ROLES } from '../auth/system-roles';
+import { AuthenticatedRequest } from '../auth/auth-request.interface';
+
+type PermissionCacheRequest = Pick<AuthenticatedRequest, '__userPermissionsCache'>;
 
 type UserPermissionSnapshot = {
   permissions: string[];
   roles: string[];
-};
-
-type PermissionCacheRequest = {
-  __userPermissionsCache?: Map<number, UserPermissionSnapshot>;
 };
 
 @Injectable()
@@ -175,28 +174,13 @@ export class PermissionsService {
     return { message: 'Permission deleted successfully' };
   }
 
-  async checkPermission(userId: number, permissionKey: string) {
-    const userRoles = await this.userRoleRepo.find({
-      where: { userId },
-      relations: {
-        role: {
-          permissions: {
-            permission: true,
-          },
-        },
-      },
-    });
-
-    const permissions = new Set<string>();
-    for (const userRole of userRoles) {
-      for (const rolePermission of userRole.role.permissions) {
-        permissions.add(rolePermission.permission.key);
-      }
-    }
-
-    return {
-      allowed: permissions.has(permissionKey),
-    };
+  async checkPermission(
+    userId: number,
+    permissionKey: string,
+    request?: PermissionCacheRequest,
+  ) {
+    const { permissions } = await this.getUserPermissions(userId, request);
+    return { allowed: permissions.includes(permissionKey) };
   }
 
   async getUserPermissions(userId: number, request?: PermissionCacheRequest) {

@@ -57,10 +57,7 @@ describe('PermissionsController', () => {
   });
 
   it('forwards current request to getUserPermissions', async () => {
-    const req = { user: { userId: 7 } } as {
-      user: { userId: number };
-      __userPermissionsCache?: Map<number, { permissions: string[]; roles: string[] }>;
-    };
+    const req = { user: { userId: 7 } } as never;
     permissionsService.getUserPermissions.mockResolvedValue({
       permissions: ['user:read'],
       roles: ['Editor'],

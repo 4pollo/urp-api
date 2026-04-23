@@ -37,6 +37,7 @@ import {
   SUPER_ADMIN_ROLE,
   USER_PERMISSION_POLICIES,
 } from '../auth/permission-policies';
+import type { AuthenticatedRequest } from '../auth/auth-request.interface';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -101,7 +102,7 @@ export class UsersController {
   @RequirePermissions(...USER_PERMISSION_POLICIES.delete)
   async remove(
     @Param('id', ParseIntPipe) id: number,
-    @Request() req: { user: { userId: number } },
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.usersService.remove(id, req.user.userId);
   }
@@ -116,7 +117,7 @@ export class UsersController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserStatusDto: UpdateUserStatusDto,
-    @Request() req: { user: { userId: number } },
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.usersService.updateStatus(id, updateUserStatusDto, req.user.userId);
   }
