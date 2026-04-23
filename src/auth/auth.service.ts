@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  Inject,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -17,15 +19,23 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SYSTEM_ROLES } from './system-roles';
+import { LOGIN_ATTEMPT_STORE } from './login-attempt-store.token';
+import type { LoginAttemptStore } from './login-attempt-store.interface';
+
+const MAX_FAILED_ATTEMPTS = 10;
+const LOCK_DURATION_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Role) private roleRepo: Repository<Role>,
     @InjectRepository(UserRole) private userRoleRepo: Repository<UserRole>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    @Inject(LOGIN_ATTEMPT_STORE) private loginAttempts: LoginAttemptStore,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -77,26 +87,47 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, clientIp?: string) {
     const { email, password } = loginDto;
+    const emailKey = email.toLowerCase();
 
-    const user = await this.userRepo.findOne({
-      where: { email },
-    });
+    // 账号锁定检查（先于密码校验，防止锁定期间持续触发 bcrypt 计算）
+    const lockUntil = await this.loginAttempts.getLockUntil(emailKey);
+    if (lockUntil) {
+      this.logger.warn('Login blocked: account locked', {
+        email: emailKey,
+        ip: clientIp,
+        lockUntil: new Date(lockUntil).toISOString(),
+      });
+      throw new UnauthorizedException(
+        'Account temporarily locked due to too many failed attempts, please try again later',
+      );
+    }
+
+    const user = await this.userRepo.findOne({ where: { email } });
 
     if (!user) {
+      await this.recordFailedAttempt(emailKey, clientIp, 'user_not_found');
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.status === UserStatus.FROZEN) {
+      this.logger.warn('Login blocked: account frozen', {
+        email: emailKey,
+        userId: user.id,
+        ip: clientIp,
+      });
       throw new UnauthorizedException('User account is frozen');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      await this.recordFailedAttempt(emailKey, clientIp, 'wrong_password');
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // 登录成功：清空失败计数
+    await this.loginAttempts.clear(emailKey);
     await this.userRepo.update(user.id, { lastLoginAt: new Date() });
 
     const tokens = this.generateTokens(user.id, user.email);
@@ -105,6 +136,12 @@ export class AuthService {
       tokens.refreshToken,
       tokens.refreshTokenExpiresAt,
     );
+
+    this.logger.log('Login success', {
+      userId: user.id,
+      email: emailKey,
+      ip: clientIp,
+    });
 
     return {
       accessToken: tokens.accessToken,
@@ -115,6 +152,31 @@ export class AuthService {
         status: user.status,
       },
     };
+  }
+
+  private async recordFailedAttempt(
+    emailKey: string,
+    clientIp: string | undefined,
+    reason: 'user_not_found' | 'wrong_password',
+  ): Promise<void> {
+    const attempts = await this.loginAttempts.incrementFailed(emailKey);
+    this.logger.warn('Login failed', {
+      email: emailKey,
+      ip: clientIp,
+      reason,
+      attempt: attempts,
+    });
+
+    if (attempts >= MAX_FAILED_ATTEMPTS) {
+      const until = Date.now() + LOCK_DURATION_MS;
+      await this.loginAttempts.lock(emailKey, until);
+      this.logger.warn('Account locked due to repeated failures', {
+        email: emailKey,
+        ip: clientIp,
+        attempts,
+        lockUntil: new Date(until).toISOString(),
+      });
+    }
   }
 
   async refreshToken(refreshToken: string) {

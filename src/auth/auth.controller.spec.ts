@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { LoginThrottlerGuard } from './login-throttler.guard';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -19,7 +20,10 @@ describe('AuthController', () => {
           useValue: authService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(LoginThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
   });

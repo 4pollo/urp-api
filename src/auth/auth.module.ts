@@ -11,6 +11,8 @@ import { Permission } from '../permissions/entities/permission.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { InMemoryLoginAttemptStore } from './in-memory-login-attempt.store';
+import { LOGIN_ATTEMPT_STORE } from './login-attempt-store.token';
 
 @Module({
   imports: [
@@ -42,7 +44,11 @@ import { JwtStrategy } from './jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    { provide: LOGIN_ATTEMPT_STORE, useClass: InMemoryLoginAttemptStore },
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

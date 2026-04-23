@@ -13,6 +13,8 @@ import { User } from '../users/entities/user.entity';
 import { Role } from '../roles/entities/role.entity';
 import { UserRole } from '../users/entities/user-role.entity';
 import { UserStatus } from '../users/entities/user-status.enum';
+import { LOGIN_ATTEMPT_STORE } from './login-attempt-store.token';
+import type { LoginAttemptStore } from './login-attempt-store.interface';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
@@ -31,6 +33,7 @@ describe('AuthService', () => {
   let userRoleRepo: { save: jest.Mock };
   let jwtService: { sign: jest.Mock; verify: jest.Mock };
   let configService: { get: jest.Mock };
+  let loginAttempts: jest.Mocked<LoginAttemptStore>;
 
   beforeEach(async () => {
     userRepo = {
@@ -57,6 +60,12 @@ describe('AuthService', () => {
         return undefined;
       }),
     };
+    loginAttempts = {
+      getLockUntil: jest.fn().mockResolvedValue(null),
+      incrementFailed: jest.fn().mockResolvedValue(1),
+      lock: jest.fn().mockResolvedValue(undefined),
+      clear: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -66,6 +75,7 @@ describe('AuthService', () => {
         { provide: getRepositoryToken(UserRole), useValue: userRoleRepo },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
+        { provide: LOGIN_ATTEMPT_STORE, useValue: loginAttempts },
       ],
     }).compile();
 
@@ -150,6 +160,87 @@ describe('AuthService', () => {
     await expect(
       service.login({ email: 'user@example.com', password: 'bad-password' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('records a failed attempt when password is wrong', async () => {
+    userRepo.findOne.mockResolvedValue({
+      id: 1,
+      email: 'user@example.com',
+      password: 'hashed-password',
+      status: UserStatus.ACTIVE,
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+    loginAttempts.incrementFailed.mockResolvedValue(3);
+
+    await expect(
+      service.login({ email: 'User@Example.com', password: 'bad' }, '1.1.1.1'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(loginAttempts.incrementFailed).toHaveBeenCalledWith('user@example.com');
+    expect(loginAttempts.lock).not.toHaveBeenCalled();
+  });
+
+  it('locks the account once failed attempts reach the threshold', async () => {
+    userRepo.findOne.mockResolvedValue({
+      id: 1,
+      email: 'user@example.com',
+      password: 'hashed-password',
+      status: UserStatus.ACTIVE,
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+    loginAttempts.incrementFailed.mockResolvedValue(10);
+
+    await expect(
+      service.login({ email: 'user@example.com', password: 'bad' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(loginAttempts.lock).toHaveBeenCalledWith(
+      'user@example.com',
+      expect.any(Number),
+    );
+  });
+
+  it('rejects login while account is locked, before checking password', async () => {
+    loginAttempts.getLockUntil.mockResolvedValue(Date.now() + 60_000);
+
+    await expect(
+      service.login({ email: 'user@example.com', password: 'whatever' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(userRepo.findOne).not.toHaveBeenCalled();
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+  });
+
+  it('clears failed attempts after a successful login', async () => {
+    userRepo.findOne.mockResolvedValue({
+      id: 1,
+      email: 'user@example.com',
+      password: 'hashed-password',
+      status: UserStatus.ACTIVE,
+    });
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    jwtService.sign
+      .mockReturnValueOnce('access-token')
+      .mockReturnValueOnce('refresh-token');
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-refresh');
+
+    await service.login(
+      { email: 'User@Example.com', password: 'good' },
+      '1.1.1.1',
+    );
+
+    expect(loginAttempts.clear).toHaveBeenCalledWith('user@example.com');
+  });
+
+  it('also records a failed attempt when the user does not exist', async () => {
+    userRepo.findOne.mockResolvedValue(null);
+    loginAttempts.incrementFailed.mockResolvedValue(1);
+
+    await expect(
+      service.login({ email: 'ghost@example.com', password: 'whatever' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(loginAttempts.incrementFailed).toHaveBeenCalledWith('ghost@example.com');
   });
 
   it('rotates refresh token on successful login', async () => {

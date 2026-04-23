@@ -5,20 +5,24 @@ import {
   Get,
   UseGuards,
   Request,
+  Ip,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { LoginThrottlerGuard } from './login-throttler.guard';
 import type { AuthenticatedRequest } from './auth-request.interface';
 
 @ApiTags('Auth')
@@ -28,6 +32,8 @@ export class AuthController {
 
   @ApiOperation({ summary: '注册用户' })
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
+  @ApiTooManyRequestsResponse({ description: '注册请求过于频繁。' })
+  @Throttle({ default: { ttl: 3600_000, limit: 5 } })
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -35,15 +41,19 @@ export class AuthController {
 
   @ApiOperation({ summary: '用户登录' })
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
-  @ApiUnauthorizedResponse({ description: '邮箱或密码错误。' })
+  @ApiUnauthorizedResponse({ description: '邮箱或密码错误，或账号被临时锁定。' })
+  @ApiTooManyRequestsResponse({ description: '登录请求过于频繁。' })
+  @UseGuards(LoginThrottlerGuard)
+  @Throttle({ default: { ttl: 300_000, limit: 10 } })
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    return this.authService.login(loginDto, ip);
   }
 
   @ApiOperation({ summary: '刷新访问令牌' })
   @ApiBadRequestResponse({ description: '请求参数校验失败。' })
   @ApiUnauthorizedResponse({ description: '刷新令牌无效。' })
+  @Throttle({ default: { ttl: 60_000, limit: 60 } })
   @Post('refresh')
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refreshToken);
@@ -62,6 +72,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiBadRequestResponse({ description: '请求参数校验失败，或新旧密码相同。' })
   @ApiUnauthorizedResponse({ description: '未提供或提供了无效的 JWT。' })
+  @ApiTooManyRequestsResponse({ description: '修改密码请求过于频繁。' })
+  @Throttle({ default: { ttl: 3600_000, limit: 10 } })
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
