@@ -117,6 +117,100 @@ describe('PermissionsService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('persists menu fields when creating a permission', async () => {
+    permissionRepo.findOne.mockResolvedValue(null);
+    permissionRepo.create.mockImplementation((dto) => dto);
+    permissionRepo.save.mockImplementation(async (entity) => ({
+      id: 99,
+      ...entity,
+    }));
+
+    const dto = {
+      key: 'article:publish',
+      group: 'article',
+      description: '发布文章',
+      showInMenu: true,
+      menuLabel: '文章管理',
+      menuIcon: 'file',
+      menuPath: '/admin/articles',
+      menuOrder: 5,
+    };
+
+    const result = await service.create(dto);
+
+    expect(permissionRepo.create).toHaveBeenCalledWith(dto);
+    expect(permissionRepo.save).toHaveBeenCalledWith(dto);
+    expect(result).toMatchObject({
+      key: 'article:publish',
+      showInMenu: true,
+      menuLabel: '文章管理',
+      menuPath: '/admin/articles',
+      menuOrder: 5,
+    });
+  });
+
+  it('rejects update that would leave a permission with showInMenu but no menuPath', async () => {
+    permissionRepo.findOne.mockResolvedValue({
+      id: 10,
+      key: 'article:publish',
+      group: 'article',
+      showInMenu: false,
+      menuLabel: null,
+      menuPath: null,
+    });
+
+    await expect(
+      service.update(10, { showInMenu: true, menuLabel: '文章' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(permissionRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('allows updating only showInMenu when existing menuLabel and menuPath are present', async () => {
+    permissionRepo.findOne.mockResolvedValue({
+      id: 10,
+      key: 'article:publish',
+      group: 'article',
+      showInMenu: false,
+      menuLabel: '文章管理',
+      menuPath: '/admin/articles',
+    });
+
+    await expect(
+      service.update(10, { showInMenu: true }),
+    ).resolves.toMatchObject({ showInMenu: true });
+    expect(permissionRepo.update).toHaveBeenCalledWith(10, { showInMenu: true });
+  });
+
+  it('allows updating menu fields on a system permission with valid config', async () => {
+    permissionRepo.findOne.mockResolvedValue({
+      id: 1,
+      key: 'user:read',
+      showInMenu: true,
+      menuLabel: '用户管理',
+      menuPath: '/admin/users',
+    });
+
+    await expect(
+      service.update(1, { menuOrder: 9 }),
+    ).resolves.toMatchObject({ menuOrder: 9 });
+    expect(permissionRepo.update).toHaveBeenCalledWith(1, { menuOrder: 9 });
+  });
+
+  it('rejects system permission update that breaks menu config', async () => {
+    permissionRepo.findOne.mockResolvedValue({
+      id: 1,
+      key: 'user:read',
+      showInMenu: true,
+      menuLabel: '用户管理',
+      menuPath: '/admin/users',
+    });
+
+    await expect(
+      service.update(1, { menuPath: 'no-leading-slash' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(permissionRepo.update).not.toHaveBeenCalled();
+  });
+
   it('protects system permissions from update', async () => {
     permissionRepo.findOne.mockResolvedValue({ id: 1, key: 'user:read' });
 

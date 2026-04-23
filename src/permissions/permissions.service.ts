@@ -12,6 +12,7 @@ import { Role } from '../roles/entities/role.entity';
 import { RolePermission } from '../roles/entities/role-permission.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { validateMenuConfig } from './dto/menu-config.validator';
 import { SYSTEM_PERMISSION_KEYS } from '../auth/permission-keys';
 import { SYSTEM_ROLES } from '../auth/system-roles';
 
@@ -83,21 +84,15 @@ export class PermissionsService {
   }
 
   async create(createPermissionDto: CreatePermissionDto) {
-    const { key, group, description } = createPermissionDto;
-
     const existingPermission = await this.permissionRepo.findOne({
-      where: { key },
+      where: { key: createPermissionDto.key },
     });
 
     if (existingPermission) {
       throw new ConflictException('Permission key already exists');
     }
 
-    const permission = this.permissionRepo.create({
-      key,
-      group,
-      description,
-    });
+    const permission = this.permissionRepo.create(createPermissionDto);
     await this.permissionRepo.save(permission);
 
     return permission;
@@ -119,6 +114,8 @@ export class PermissionsService {
         throw new BadRequestException('System permissions core fields cannot be modified');
       }
 
+      this.assertMenuConfigValid(permission, menuFields);
+
       // 只更新菜单配置字段
       await this.permissionRepo.update(id, menuFields);
 
@@ -137,12 +134,29 @@ export class PermissionsService {
       }
     }
 
+    this.assertMenuConfigValid(permission, updatePermissionDto);
+
     await this.permissionRepo.update(id, updatePermissionDto);
 
     return {
       ...permission,
       ...updatePermissionDto,
     };
+  }
+
+  private assertMenuConfigValid(
+    current: Permission,
+    patch: Partial<UpdatePermissionDto>,
+  ) {
+    const merged = {
+      showInMenu: patch.showInMenu ?? current.showInMenu,
+      menuLabel: patch.menuLabel ?? current.menuLabel,
+      menuPath: patch.menuPath ?? current.menuPath,
+    };
+    const error = validateMenuConfig(merged);
+    if (error) {
+      throw new BadRequestException(error);
+    }
   }
 
   async remove(id: number) {
