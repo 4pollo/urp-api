@@ -15,6 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
+import { SYSTEM_ROLES } from '../auth/system-roles';
 
 export interface UserListItem {
   id: number;
@@ -143,7 +144,7 @@ export class UsersService {
       }
     } else {
       const guestRole = await this.roleRepo.findOne({
-        where: { name: 'Guest' },
+        where: { name: SYSTEM_ROLES.GUEST },
       });
       if (guestRole) {
         await this.userRoleRepo.save({
@@ -202,7 +203,7 @@ export class UsersService {
     // 防止 SuperAdmin 删除自己
     if (currentUserId && currentUserId === id) {
       const isSuperAdmin = user.roles.some(
-        (userRole) => userRole.role.name === 'SuperAdmin',
+        (userRole) => userRole.role.name === SYSTEM_ROLES.SUPER_ADMIN,
       );
       if (isSuperAdmin) {
         throw new BadRequestException('SuperAdmin cannot delete themselves');
@@ -235,7 +236,7 @@ export class UsersService {
     // 防止 SuperAdmin 冻结自己
     if (currentUserId && currentUserId === id) {
       const isSuperAdmin = user.roles.some(
-        (userRole) => userRole.role.name === 'SuperAdmin',
+        (userRole) => userRole.role.name === SYSTEM_ROLES.SUPER_ADMIN,
       );
       if (isSuperAdmin && updateUserStatusDto.status === UserStatus.FROZEN) {
         throw new BadRequestException('SuperAdmin cannot freeze themselves');
@@ -274,13 +275,15 @@ export class UsersService {
     }
 
     const hasSuperAdminRole = user.roles.some(
-      (userRole) => userRole.role.name === 'SuperAdmin',
+      (userRole) => userRole.role.name === SYSTEM_ROLES.SUPER_ADMIN,
     );
-    const keepsSuperAdminRole = roles.some((role) => role.name === 'SuperAdmin');
+    const keepsSuperAdminRole = roles.some(
+      (role) => role.name === SYSTEM_ROLES.SUPER_ADMIN,
+    );
 
     if (hasSuperAdminRole && !keepsSuperAdminRole) {
       const superAdminRole = await this.roleRepo.findOne({
-        where: { name: 'SuperAdmin' },
+        where: { name: SYSTEM_ROLES.SUPER_ADMIN },
       });
 
       if (!superAdminRole) {

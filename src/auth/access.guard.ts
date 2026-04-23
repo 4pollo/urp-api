@@ -10,6 +10,7 @@ import {
   REQUIRED_PERMISSIONS_KEY,
   REQUIRED_ROLES_KEY,
 } from './access.decorator';
+import { SYSTEM_ROLES } from './system-roles';
 
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -50,7 +51,7 @@ export class AccessGuard implements CanActivate {
     const { roles, permissions } =
       await this.permissionsService.getUserPermissions(userId, request);
 
-    if (roles.includes('SuperAdmin')) {
+    if (roles.includes(SYSTEM_ROLES.SUPER_ADMIN)) {
       return true;
     }
 

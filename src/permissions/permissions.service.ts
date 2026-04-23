@@ -13,6 +13,7 @@ import { RolePermission } from '../roles/entities/role-permission.entity';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { SYSTEM_PERMISSION_KEYS } from '../auth/permission-keys';
+import { SYSTEM_ROLES } from '../auth/system-roles';
 
 type UserPermissionSnapshot = {
   permissions: string[];
@@ -238,7 +239,7 @@ export class PermissionsService {
       },
     });
 
-    const isSuperAdmin = userRoles.some((ur) => ur.role.name === 'SuperAdmin');
+    const isSuperAdmin = userRoles.some((ur) => ur.role.name === SYSTEM_ROLES.SUPER_ADMIN);
 
     let menuPermissions: Permission[];
 

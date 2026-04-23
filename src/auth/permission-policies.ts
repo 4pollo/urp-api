@@ -1,6 +1,7 @@
 import { PERMISSION_KEYS } from './permission-keys';
+import { SYSTEM_ROLES } from './system-roles';
 
-export const SUPER_ADMIN_ROLE = 'SuperAdmin' as const;
+export const SUPER_ADMIN_ROLE = SYSTEM_ROLES.SUPER_ADMIN;
 
 export const USER_PERMISSION_POLICIES = {
   read: [PERMISSION_KEYS.user.read],

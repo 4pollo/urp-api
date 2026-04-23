@@ -16,6 +16,7 @@ import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { SYSTEM_ROLES } from './system-roles';
 
 @Injectable()
 export class AuthService {
@@ -48,7 +49,7 @@ export class AuthService {
     await this.userRepo.save(user);
 
     const guestRole = await this.roleRepo.findOne({
-      where: { name: 'Guest' },
+      where: { name: SYSTEM_ROLES.GUEST },
     });
 
     if (guestRole) {

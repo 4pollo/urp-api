@@ -12,6 +12,7 @@ import { Permission } from '../permissions/entities/permission.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
+import { isSystemRole } from '../auth/system-roles';
 
 @Injectable()
 export class RolesService {
@@ -119,7 +120,7 @@ export class RolesService {
       throw new NotFoundException('Role not found');
     }
 
-    if (role.name === 'SuperAdmin' || role.name === 'Guest') {
+    if (isSystemRole(role.name)) {
       throw new BadRequestException('System roles cannot be modified');
     }
 
@@ -148,7 +149,7 @@ export class RolesService {
       throw new NotFoundException('Role not found');
     }
 
-    if (role.name === 'SuperAdmin' || role.name === 'Guest') {
+    if (isSystemRole(role.name)) {
       throw new BadRequestException('System roles cannot be deleted');
     }
 
@@ -167,7 +168,7 @@ export class RolesService {
       throw new NotFoundException('Role not found');
     }
 
-    if (role.name === 'SuperAdmin' || role.name === 'Guest') {
+    if (isSystemRole(role.name)) {
       throw new BadRequestException('System roles cannot be modified');
     }
 

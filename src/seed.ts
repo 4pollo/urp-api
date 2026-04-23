@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { User } from './users/entities/user.entity';
 import { UserRole } from './users/entities/user-role.entity';
@@ -8,6 +9,7 @@ import { Role } from './roles/entities/role.entity';
 import { RolePermission } from './roles/entities/role-permission.entity';
 import { Permission } from './permissions/entities/permission.entity';
 import { UserStatus } from './users/entities/user-status.enum';
+import { SYSTEM_ROLES } from './auth/system-roles';
 import 'dotenv/config';
 
 async function main() {
@@ -32,10 +34,12 @@ async function main() {
   const urRepo = dataSource.getRepository(UserRole);
 
   // Upsert SuperAdmin role
-  let superAdmin = await roleRepo.findOne({ where: { name: 'SuperAdmin' } });
+  let superAdmin = await roleRepo.findOne({
+    where: { name: SYSTEM_ROLES.SUPER_ADMIN },
+  });
   if (!superAdmin) {
     superAdmin = roleRepo.create({
-      name: 'SuperAdmin',
+      name: SYSTEM_ROLES.SUPER_ADMIN,
       description: '超级管理员，拥有所有权限',
     });
     await roleRepo.save(superAdmin);
@@ -43,10 +47,10 @@ async function main() {
   }
 
   // Upsert Guest role
-  let guest = await roleRepo.findOne({ where: { name: 'Guest' } });
+  let guest = await roleRepo.findOne({ where: { name: SYSTEM_ROLES.GUEST } });
   if (!guest) {
     guest = roleRepo.create({
-      name: 'Guest',
+      name: SYSTEM_ROLES.GUEST,
       description: '默认角色',
     });
     await roleRepo.save(guest);
@@ -132,14 +136,27 @@ async function main() {
     where: { email: 'admin@example.com' },
   });
   if (!adminUser) {
-    const hashedPassword = await bcrypt.hash('admin123', 12);
+    const envPassword = process.env.ADMIN_DEFAULT_PASSWORD;
+    const generatedPassword = envPassword || randomBytes(16).toString('hex');
+    if (generatedPassword.length < 8) {
+      throw new Error('ADMIN_DEFAULT_PASSWORD must be at least 8 characters');
+    }
+    const hashedPassword = await bcrypt.hash(generatedPassword, 12);
     adminUser = userRepo.create({
       email: 'admin@example.com',
       password: hashedPassword,
       status: UserStatus.ACTIVE,
     });
     await userRepo.save(adminUser);
-    console.log('Created admin user');
+    console.log('Created admin user: admin@example.com');
+    if (!envPassword) {
+      console.log('='.repeat(60));
+      console.log('IMPORTANT: Generated initial admin password:');
+      console.log(`  ${generatedPassword}`);
+      console.log('Please change this password immediately after first login.');
+      console.log('Set ADMIN_DEFAULT_PASSWORD in .env to use a custom password.');
+      console.log('='.repeat(60));
+    }
   }
 
   // Assign SuperAdmin role to admin
@@ -157,7 +174,6 @@ async function main() {
   }
 
   console.log('Seed completed!');
-  console.log('Default admin user: admin@example.com / admin123');
 
   await dataSource.destroy();
 }
